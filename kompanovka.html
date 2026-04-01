@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Компоновка ЭЦН — Карта спуска</title>
+<style>
+:root {
+  --gold:#C8A84B; --gold2:#E5C76B; --gold3:#7A6020;
+  --bg:#07090D; --panel:#0D1219; --panel2:#111820; --panel3:#161E28;
+  --border:#1E2D3D; --border2:#2A3D52;
+  --text:#7A99B0; --text2:#A8C0D0; --text1:#E0EAF0; --text3:#6A8A9A;
+  --green:#2EA84C; --red:#C84040; --blue:#4A9EE0; --orange:#D07A30;
+  --font-head:'Trebuchet MS','Arial Narrow',Arial,sans-serif;
+  --font-mono:'Courier New',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-head);font-size:14px;min-height:100vh;}
+/* ── HEADER ── */
+header{background:linear-gradient(180deg,#0A1018 0%,#0D1520 100%);border-bottom:1px solid var(--gold3);padding:14px 16px;text-align:center;}
+header h1{font-size:0.7rem;letter-spacing:3px;color:var(--gold);margin-bottom:2px;}
+header p{font-size:0.55rem;color:var(--text3);letter-spacing:1px;}
+
+/* ── MAIN ── */
+main{max-width:600px;margin:0 auto;padding:12px;}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.card-title{font-size:0.6rem;letter-spacing:2px;color:var(--gold);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+
+.row{display:flex;gap:8px;margin-bottom:8px;}
+.row > *{flex:1;}
+
+label{display:block;font-size:0.55rem;color:var(--text3);letter-spacing:1px;margin-bottom:3px;}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:8px;color:var(--text1);font-family:var(--font-mono);font-size:0.75rem;}
+input:focus,select:focus{outline:none;border-color:var(--gold);}
+input::placeholder{color:var(--text3);opacity:0.5;}
+select{cursor:pointer;}
+
+.field{margin-bottom:8px;}
+
+/* ── Таблица НКТ ── */
+.tbl-wrap{overflow-x:auto;margin-bottom:8px;}
+table.data-tbl{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:0.65rem;}
+table.data-tbl th{background:var(--panel3);color:var(--gold);padding:6px 4px;border:1px solid var(--border2);text-align:center;font-weight:normal;letter-spacing:1px;font-family:var(--font-head);font-size:0.5rem;}
+table.data-tbl td{padding:4px;border:1px solid var(--border);text-align:center;}
+table.data-tbl input{text-align:center;padding:5px 2px;font-size:0.7rem;border:none;background:transparent;color:var(--text1);}
+table.data-tbl input:focus{background:var(--panel3);border-radius:3px;}
+
+/* ── Buttons ── */
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:8px;font-family:var(--font-head);font-size:0.65rem;letter-spacing:2px;cursor:pointer;transition:all 0.15s;}
+.btn-gold{background:linear-gradient(135deg,var(--gold3),var(--gold));color:#0A0A0A;}
+.btn-gold:active{transform:scale(0.97);}
+.btn-blue{background:linear-gradient(135deg,#1A4060,var(--blue));color:#fff;margin-top:8px;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-red{background:linear-gradient(135deg,#5A1010,var(--red));color:#fff;margin-top:8px;}
+.btn-sm{display:inline-block;width:auto;padding:5px 10px;font-size:0.5rem;border-radius:5px;}
+
+.add-row-btn{background:var(--panel2);border:1px dashed var(--border2);color:var(--text3);padding:6px;text-align:center;border-radius:5px;cursor:pointer;font-size:0.55rem;letter-spacing:1px;margin-top:4px;}
+.add-row-btn:active{background:var(--panel3);}
+
+.del-btn{background:var(--red);color:#fff;border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:0.6rem;}
+
+/* ── Сохранённые ── */
+.saved-item{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.saved-item .info{font-size:0.65rem;color:var(--text2);}
+.saved-item .info small{display:block;color:var(--text3);font-size:0.5rem;}
+.saved-item .actions{display:flex;gap:4px;}
+
+footer{text-align:center;padding:16px;font-size:0.45rem;color:var(--text3);letter-spacing:2px;}
+
+/* ═══════════════════════════════════════════
+   PRINT / PDF VIEW
+   ═══════════════════════════════════════════ */
+#printView{display:none;}
+
+@media print {
+  body > *:not(#printView){display:none !important;}
+  #printView{display:block !important;background:#fff;color:#000;font-family:'Times New Roman',serif;font-size:10pt;padding:10mm;margin:0;}
+  @page{size:A4 portrait;margin:8mm;}
+
+  .pv-title{text-align:center;font-weight:bold;font-size:12pt;margin-bottom:6pt;}
+  .pv-header{display:flex;justify-content:space-between;font-size:9pt;margin-bottom:8pt;border-bottom:1px solid #000;padding-bottom:4pt;}
+  .pv-header span{margin-right:12pt;}
+
+  .pv-section{margin-bottom:8pt;}
+  .pv-section-title{font-weight:bold;font-size:9pt;border-bottom:1px solid #aaa;margin-bottom:4pt;padding-bottom:2pt;}
+
+  table.pv-tbl{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:6pt;}
+  table.pv-tbl th,table.pv-tbl td{border:1px solid #000;padding:3pt 4pt;text-align:center;}
+  table.pv-tbl th{background:#e8e8e8;font-weight:bold;font-size:8pt;}
+
+  .pv-row{display:flex;gap:16pt;margin-bottom:3pt;font-size:9pt;}
+  .pv-row .pv-label{color:#444;min-width:140pt;}
+  .pv-row .pv-val{font-weight:bold;border-bottom:1px solid #000;flex:1;min-width:80pt;}
+
+  .pv-equip{display:flex;flex-wrap:wrap;gap:6pt 20pt;margin-bottom:6pt;font-size:9pt;}
+  .pv-equip-item{display:flex;gap:4pt;}
+  .pv-equip-item .eq-n{font-weight:bold;width:14pt;text-align:right;}
+
+  .pv-footer{margin-top:16pt;font-size:9pt;}
+  .pv-footer .sig-row{display:flex;justify-content:space-between;margin-bottom:10pt;align-items:flex-end;}
+  .pv-footer .sig-line{border-bottom:1px solid #000;width:200pt;display:inline-block;margin:0 6pt;}
+
+  .pv-note{font-size:8pt;color:#444;margin-top:8pt;border:1px solid #aaa;padding:4pt;border-radius:2pt;}
+
+  /* Схема колонны */
+  .pv-schema{width:120pt;min-height:400pt;margin:0 auto;position:relative;border-left:2px solid #000;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;padding:4pt 0;}
+  .pv-schema .eq-block{width:80%;border:1px solid #555;padding:2pt;text-align:center;font-size:6.5pt;margin:2pt 0;background:#f4f4f4;border-radius:2pt;}
+
+  .pv-two-col{display:flex;gap:12pt;}
+  .pv-two-col .pv-col-left{flex:1;}
+  .pv-two-col .pv-col-right{width:140pt;}
+}
+
+/* ── Превью на экране ── */
+.preview-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.9);overflow:auto;}
+.preview-modal.active{display:block;}
+.preview-content{background:#fff;color:#000;width:740px;min-width:740px;margin:20px auto;padding:16px;font-family:'Times New Roman',serif;font-size:10pt;border-radius:4px;position:relative;}
+.preview-close{position:sticky;top:0;z-index:10;text-align:right;padding:8px;background:#fff;border-radius:4px;}
+.preview-close button{background:var(--red);color:#fff;border:none;padding:8px 16px;border-radius:5px;font-size:12px;cursor:pointer;}
+
+.pv-title{text-align:center;font-weight:bold;font-size:13pt;margin-bottom:8pt;}
+.pv-header{display:flex;flex-wrap:wrap;gap:4pt 16pt;font-size:9pt;margin-bottom:10pt;border-bottom:1px solid #000;padding-bottom:6pt;}
+.pv-section{margin-bottom:10pt;}
+.pv-section-title{font-weight:bold;font-size:10pt;border-bottom:1px solid #aaa;margin-bottom:4pt;padding-bottom:2pt;}
+table.pv-tbl{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:8pt;}
+table.pv-tbl th,table.pv-tbl td{border:1px solid #000;padding:4pt 5pt;text-align:center;}
+table.pv-tbl th{background:#e8e8e8;font-weight:bold;}
+.pv-row{display:flex;gap:12pt;margin-bottom:4pt;font-size:9.5pt;}
+.pv-row .pv-label{color:#444;min-width:150pt;}
+.pv-row .pv-val{font-weight:bold;border-bottom:1px solid #000;flex:1;}
+.pv-equip{margin-bottom:8pt;font-size:9.5pt;}
+.pv-equip-item{display:flex;gap:6pt;margin-bottom:2pt;}
+.pv-equip-item .eq-n{font-weight:bold;width:16pt;text-align:right;}
+.pv-footer{margin-top:18pt;font-size:9.5pt;}
+.pv-footer .sig-row{display:flex;justify-content:space-between;margin-bottom:14pt;}
+.pv-footer .sig-line{border-bottom:1px solid #000;width:180pt;display:inline-block;margin:0 6pt;}
+.pv-note{font-size:8pt;color:#444;margin-top:8pt;border:1px solid #aaa;padding:6pt;border-radius:2pt;}
+</style>
+</head>
+<body>
+
+<header style="position:relative;">
+  <a href="index.html" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:var(--gold3);color:var(--gold2);border:1px solid var(--gold);border-radius:6px;padding:6px 10px;font-family:var(--font-head);font-size:0.55rem;letter-spacing:1px;text-decoration:none;display:flex;align-items:center;gap:4px;">← КАЛЬКУЛЯТОР</a>
+  <h1>КОМПОНОВКА ЭЦН</h1>
+  <p>КАРТА СПУСКА СКВАЖИННОГО ОБОРУДОВАНИЯ</p>
+</header>
+
+<main>
+
+<!-- ═══ ОБЩИЕ ДАННЫЕ ═══ -->
+<div class="card">
+  <div class="card-title">📋 ОБЩИЕ ДАННЫЕ</div>
+  <div class="row">
+    <div class="field"><label>ЦДНГ</label><input id="f_cdng" placeholder="ЦДНГ"></div>
+    <div class="field"><label>ДАТА</label><input type="date" id="f_date"></div>
+  </div>
+  <div class="field"><label>МЕСТОРОЖДЕНИЕ</label><input id="f_mesto" placeholder="Суторминское"></div>
+  <div class="row">
+    <div class="field"><label>СКВАЖИНА №</label><input id="f_skv" placeholder="7900"></div>
+    <div class="field"><label>КУСТ</label><input id="f_kust" placeholder="507"></div>
+  </div>
+</div>
+
+<!-- ═══ ЭКСПЛУАТАЦИОННАЯ КОЛОННА ═══ -->
+<div class="card">
+  <div class="card-title">🔩 ЭКСПЛУАТАЦИОННАЯ КОЛОННА</div>
+  <div class="tbl-wrap">
+    <table class="data-tbl" id="tbl_ek">
+      <thead><tr><th>Диаметр, мм</th><th>Интервал, м</th><th>Толщ.стенки, мм</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><input placeholder="178"></td><td><input placeholder="0-3087"></td><td><input placeholder="9.2"></td><td><button class="del-btn" onclick="delRow(this)">×</button></td></tr>
+        <tr><td><input placeholder="127"></td><td><input placeholder="3020.7-3102.9"></td><td><input placeholder="9.2"></td><td><button class="del-btn" onclick="delRow(this)">×</button></td></tr>
+        <tr><td><input placeholder="114"></td><td><input placeholder="3102.9-3957.7"></td><td><input placeholder="7.4"></td><td><button class="del-btn" onclick="delRow(this)">×</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="add-row-btn" onclick="addRow('tbl_ek',3)">+ ДОБАВИТЬ СТРОКУ</div>
+</div>
+
+<!-- ═══ НКТ ═══ -->
+<div class="card">
+  <div class="card-title">🔧 НКТ (СТУПЕНИ)</div>
+
+  <label style="color:var(--gold);margin-bottom:6px;">НКТ 1 ступень</label>
+  <div class="row">
+    <div class="field"><label>Диаметр, мм</label>
+<select id="f_nkt1_d">
+  <option value="">— выбрать —</option>
+  <option value="60">НКТ 60 мм</option>
+  <option value="73" selected>НКТ 73 мм</option>
+  <option value="89">НКТ 89 мм</option>
+  <option value="114">НКТ 114 мм</option>
+</select></div>
+    <div class="field"><label>Марка стали</label><input id="f_nkt1_mark" placeholder="Л"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Кол-во, шт</label><input id="f_nkt1_kol" placeholder=""></div>
+    <div class="field"><label>Метраж, м</label><input id="f_nkt1_m" placeholder="810"></div>
+  </div>
+
+  <label style="color:var(--gold);margin-bottom:6px;margin-top:10px;">НКТ 2 ступень</label>
+  <div class="row">
+    <div class="field"><label>Диаметр, мм</label>
+<select id="f_nkt2_d">
+  <option value="">— выбрать —</option>
+  <option value="60">НКТ 60 мм</option>
+  <option value="73" selected>НКТ 73 мм</option>
+  <option value="89">НКТ 89 мм</option>
+  <option value="114">НКТ 114 мм</option>
+</select></div>
+    <div class="field"><label>Марка стали</label><input id="f_nkt2_mark" placeholder=""></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Кол-во, шт</label><input id="f_nkt2_kol" placeholder=""></div>
+    <div class="field"><label>Метраж, м</label><input id="f_nkt2_m" placeholder="2100"></div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
+    <label style="color:var(--gold);margin-bottom:6px;">Данные по НКТ</label>
+    <div class="row">
+      <div class="field"><label>Общая длина, м</label><input id="f_nkt_len" placeholder=""></div>
+      <div class="field"><label>Марка стали НКТ</label><input id="f_nkt_steel" placeholder=""></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Вес при посадке ПШ, тонн</label><input id="f_nkt_ves" placeholder=""></div>
+      <div class="field"><label>Срыв ПШ, тонн</label><input id="f_nkt_sryv" placeholder=""></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ОБОРУДОВАНИЕ КОМПОНОВКИ ═══ -->
+<div class="card">
+  <div class="card-title">⚙️ ОБОРУДОВАНИЕ КОМПОНОВКИ</div>
+
+  <div class="field">
+    <label>ПОДВЕСНОЙ ПАТРУБОК</label>
+    <div class="row">
+      <div class="field"><label>L, м</label><input id="f_patr_l" placeholder="0.8"></div>
+      <div class="field"><label>Марка стали</label><input id="f_patr_mark" placeholder=""></div>
+      <div class="field"><label>мм, №</label><input id="f_patr_mm" placeholder="СПО"></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>ЛОВИТЕЛЬ СКРЕБКОВ установить на:</label>
+    <div class="row">
+      <div class="field"><label>НКТ от сбивного клапана</label><input id="f_lov_nkt" placeholder="20"></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>СБИВНОЙ КЛАПАН установить на:</label>
+    <div class="row">
+      <div class="field"><label>№ позиции</label><input id="f_sbiv_pos" placeholder="5"></div>
+      <div class="field"><label>НКТ от УЭЦН №</label><input id="f_sbiv_nkt" placeholder=""></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>ШЛАМОУЛОВИТЕЛЬ установить на:</label>
+    <div class="row">
+      <div class="field"><label>№ позиции</label><input id="f_shlam_pos" placeholder="3"></div>
+      <div class="field"><label>НКТ от УЭЦН №</label><input id="f_shlam_nkt" placeholder=""></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>2-й ОБРАТНЫЙ КЛАПАН установить на:</label>
+    <div class="row">
+      <div class="field"><label>№ позиции</label><input id="f_ok2_pos" placeholder="2"></div>
+      <div class="field"><label>НКТ от УЭЦН №</label><input id="f_ok2_nkt" placeholder=""></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>1-й ОБРАТНЫЙ КЛАПАН установить на:</label>
+    <div class="row">
+      <div class="field"><label>№ позиции</label><input id="f_ok1_pos" placeholder="1"></div>
+      <div class="field"><label>НКТ от УЭЦН №</label><input id="f_ok1_nkt" placeholder=""></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ УЭЦН ═══ -->
+<div class="card">
+  <div class="card-title">🔋 УЭЦН</div>
+  <div class="field"><label>ТИП УЭЦН</label><input id="f_uecn" placeholder="30.1ЭЦНДИБА-60М-2600"></div>
+  <div class="row">
+    <div class="field"><label>Глубина спуска НКТ, м</label><input id="f_depth_nkt" placeholder="2910"></div>
+    <div class="field"><label>Глубина спуска ЭЦН, м</label><input id="f_depth_ecn" placeholder="2929.3"></div>
+  </div>
+  <div class="field"><label>Заканчивание УЭЦН (ОПД, ФСГЩ, ТМС)</label><input id="f_zakanchivanie" placeholder="УП-142 или ОДП эк 168-178мм"></div>
+  <div class="field"><label>Длина установки, м</label><input id="f_uecn_len" placeholder="19.3"></div>
+  <div class="field"><label>Крепление кабеля в районе УЭЦН (ПЛНА; ПФНА; ПЗТ; клямсы)</label><input id="f_cable_fix" placeholder="КК71мм2шт"></div>
+</div>
+
+<!-- ═══ СПУСК НКТ (ФАКТ) ═══ -->
+<div class="card">
+  <div class="card-title">📐 СПУСК НКТ (ФАКТ)</div>
+  <div class="tbl-wrap">
+    <table class="data-tbl" id="tbl_spusk">
+      <thead><tr><th>НКТ</th><th>Марка</th><th>Шт.</th><th>Метры</th><th>Признак</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><input></td><td><input></td><td><input></td><td><input></td><td><input></td><td><button class="del-btn" onclick="delRow(this)">×</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="add-row-btn" onclick="addRow('tbl_spusk',5)">+ ДОБАВИТЬ СТРОКУ</div>
+</div>
+
+<!-- ═══ ХВОСТОВИКИ ═══ -->
+<div class="card">
+  <div class="card-title">📏 ХВОСТОВИКИ</div>
+  <div class="tbl-wrap">
+    <table class="data-tbl" id="tbl_hvost">
+      <thead><tr><th>Диаметр, мм</th><th>Толщ.стенки, мм</th><th>Голова хв., м</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><input placeholder="127"></td><td><input placeholder="9.2"></td><td><input placeholder="3020.7"></td><td><button class="del-btn" onclick="delRow(this)">×</button></td></tr>
+        <tr><td><input placeholder="114"></td><td><input placeholder="7.4"></td><td><input placeholder="3102.9"></td><td><button class="del-btn" onclick="delRow(this)">×</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="add-row-btn" onclick="addRow('tbl_hvost',3)">+ ДОБАВИТЬ СТРОКУ</div>
+
+  <div class="row" style="margin-top:8px;align-items:flex-end;">
+    <div class="field"><label>Интервал перфорации, м</label><input id="f_perf_int" placeholder=""></div>
+    <div class="field"><label>Кол-во</label><input id="f_perf_kol" placeholder="БС11"></div>
+    <div class="field"><label>Интервал, м</label><input id="f_perf_m" placeholder="3102.9-3957.7"></div>
+  </div>
+</div>
+
+<!-- ═══ КАБЕЛЬНАЯ ЛИНИЯ ═══ -->
+<div class="card">
+  <div class="card-title">🔌 КАБЕЛЬНАЯ ЛИНИЯ</div>
+  <div class="field"><label>Крепление погружного кабеля по НКТ</label><input id="f_cable_krepl" placeholder="Клямсы 73мм-768шт"></div>
+  <div class="field"><label>СПО, кол-во</label><input id="f_spo_kol" placeholder=""></div>
+  <div class="field"><label>МРП, сут</label><input id="f_mrp" placeholder=""></div>
+</div>
+
+<!-- ═══ ПОДПИСИ ═══ -->
+<div class="card">
+  <div class="card-title">✍️ ПОДПИСИ</div>
+  <div class="field"><label>Технолог</label><input id="f_technolog" placeholder=""></div>
+  <div class="field"><label>Должность технолога</label><input id="f_tech_dolzh" placeholder="Технолог ЦДНГ"></div>
+  <div class="field"><label>Мастер ПРС/КРС</label><input id="f_master" placeholder=""></div>
+  <div class="row">
+    <div class="field"><label>Бригада №</label><input id="f_brigada" placeholder=""></div>
+    <div class="field"><label>Дата спуска</label><input type="date" id="f_date_spusk"></div>
+  </div>
+</div>
+
+<!-- ═══ РЕКОМЕНДАЦИИ ═══ -->
+<div class="card">
+  <div class="card-title">📝 РЕКОМЕНДАЦИИ</div>
+  <div class="field">
+    <label>Скорость спуска / особые указания</label>
+    <textarea id="f_recom" rows="3" placeholder="Рекомендуется снизить скорость спуска до 0.1м/сек. в указанных интервалах: 2364м - 2410м, 2530м - 2910м." style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:8px;color:var(--text);font-family:var(--font-mono);font-size:0.75rem;resize:vertical;"></textarea>
+  </div>
+</div>
+
+<!-- ═══ ДЕЙСТВИЯ ═══ -->
+<button class="btn btn-gold" onclick="previewPrint()">👁 ПРЕДПРОСМОТР</button>
+<button class="btn btn-blue" onclick="printPDF()">📄 СКАЧАТЬ PDF</button>
+<button class="btn btn-outline" onclick="saveLocal()" style="margin-top:8px;">💾 СОХРАНИТЬ В ПАМЯТЬ</button>
+
+<!-- ═══ СОХРАНЁННЫЕ ═══ -->
+<div class="card" style="margin-top:12px;">
+  <div class="card-title">📁 СОХРАНЁННЫЕ КОМПОНОВКИ</div>
+  <div id="savedList"><div style="text-align:center;color:var(--text3);font-size:0.55rem;padding:12px;">Нет сохранённых</div></div>
+</div>
+
+<button class="btn btn-outline" onclick="clearForm()" style="margin-top:8px;">🗑 ОЧИСТИТЬ ФОРМУ</button>
+
+</main>
+
+<footer>КОМПОНОВКА ЭЦН v1.0</footer>
+
+<!-- ═══ ПРЕВЬЮ МОДАЛ ═══ -->
+<div class="preview-modal" id="previewModal">
+  <div class="preview-close"><button onclick="closePreview()">✕ ЗАКРЫТЬ</button></div>
+  <div class="preview-content" id="previewContent"></div>
+  <div style="text-align:center;padding:12px;">
+    <button class="btn btn-gold" style="max-width:300px;margin:0 auto;" onclick="printPDF()">📄 ПЕЧАТЬ / PDF</button>
+  </div>
+</div>
+
+<!-- ═══ PRINT VIEW (скрытый, для @media print) ═══ -->
+<div id="printView"></div>
+
+<script>
+/* ── Таблицы: добавить/удалить строку ── */
+function addRow(tblId, cols) {
+  const tbody = document.getElementById(tblId).querySelector('tbody');
+  const tr = document.createElement('tr');
+  for(let i=0;i<cols;i++) tr.innerHTML += '<td><input></td>';
+  tr.innerHTML += '<td><button class="del-btn" onclick="delRow(this)">×</button></td>';
+  tbody.appendChild(tr);
+}
+function delRow(btn) {
+  const tbody = btn.closest('tbody');
+  if(tbody.rows.length > 1) btn.closest('tr').remove();
+}
+
+/* ── Собрать данные ── */
+function getData() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const tbl = id => {
+    const rows = [];
+    document.getElementById(id).querySelectorAll('tbody tr').forEach(tr => {
+      const cells = [];
+      tr.querySelectorAll('input').forEach(inp => cells.push(inp.value.trim()));
+      if(cells.some(c=>c)) rows.push(cells);
+    });
+    return rows;
+  };
+  return {
+    cdng: v('f_cdng'), date: v('f_date'), mesto: v('f_mesto'),
+    skv: v('f_skv'), kust: v('f_kust'),
+    ek: tbl('tbl_ek'),
+    nkt1: {d:v('f_nkt1_d'),mark:v('f_nkt1_mark'),kol:v('f_nkt1_kol'),m:v('f_nkt1_m')},
+    nkt2: {d:v('f_nkt2_d'),mark:v('f_nkt2_mark'),kol:v('f_nkt2_kol'),m:v('f_nkt2_m')},
+    nkt_len:v('f_nkt_len'), nkt_steel:v('f_nkt_steel'),
+    nkt_ves:v('f_nkt_ves'), nkt_sryv:v('f_nkt_sryv'),
+    patr:{l:v('f_patr_l'),mark:v('f_patr_mark'),mm:v('f_patr_mm')},
+    lov_nkt:v('f_lov_nkt'),
+    sbiv:{pos:v('f_sbiv_pos'),nkt:v('f_sbiv_nkt')},
+    shlam:{pos:v('f_shlam_pos'),nkt:v('f_shlam_nkt')},
+    ok2:{pos:v('f_ok2_pos'),nkt:v('f_ok2_nkt')},
+    ok1:{pos:v('f_ok1_pos'),nkt:v('f_ok1_nkt')},
+    uecn:v('f_uecn'), depth_nkt:v('f_depth_nkt'), depth_ecn:v('f_depth_ecn'),
+    zakanchivanie:v('f_zakanchivanie'), uecn_len:v('f_uecn_len'),
+    cable_fix:v('f_cable_fix'),
+    spusk: tbl('tbl_spusk'),
+    hvost: tbl('tbl_hvost'),
+    perf_int:v('f_perf_int'), perf_kol:v('f_perf_kol'), perf_m:v('f_perf_m'),
+    cable_krepl:v('f_cable_krepl'), spo_kol:v('f_spo_kol'), mrp:v('f_mrp'),
+    technolog:v('f_technolog'), tech_dolzh:v('f_tech_dolzh'),
+    master:v('f_master'), brigada:v('f_brigada'), date_spusk:v('f_date_spusk'),
+    recom:v('f_recom')
+  };
+}
+
+/* ── Форматирование даты ── */
+function fmtDate(d){if(!d)return'___.___.______';const p=d.split('-');return p[2]+'.'+p[1]+'.'+p[0];}
+
+/* ── Генерация HTML для печати ── */
+function buildPrintHTML(d) {
+  let ekRows = d.ek.map(r=>`<tr><td>${r[0]||''}</td><td>${r[1]||''}</td><td>${r[2]||''}</td></tr>`).join('');
+  if(!ekRows) ekRows = '<tr><td></td><td></td><td></td></tr>';
+  let spuskRows = d.spusk.map(r=>`<tr><td>${r[0]||''}</td><td>${r[1]||''}</td><td>${r[2]||''}</td><td>${r[3]||''}</td><td>${r[4]||''}</td></tr>`).join('');
+  if(!spuskRows) spuskRows = '<tr><td></td><td></td><td></td><td></td><td></td></tr>';
+  let hvostRows = d.hvost.map(r=>`<tr><td>${r[0]||''}</td><td>${r[1]||''}</td><td>${r[2]||''}</td></tr>`).join('');
+  if(!hvostRows) hvostRows = '<tr><td></td><td></td><td></td></tr>';
+
+  /* ── SVG схема колонны — динамическая ── */
+  const _cx = 60, _pTop = 24, _pBot = 414, _pH = 390;
+  // Диаметры НКТ
+  const _d1 = parseFloat(d.nkt1.d)||73;
+  const _d2 = parseFloat(d.nkt2.d)||_d1;
+  const _maxD = Math.max(_d1, _d2, 1);
+  // Ширина трубы пропорционально диаметру (макс 36px)
+  const _w1 = Math.round((_d1/_maxD)*36);
+  const _w2 = Math.round((_d2/_maxD)*36);
+  // Точка перехода ступеней по метражу
+  const _m1 = parseFloat(d.nkt1.m)||0;
+  const _m2 = parseFloat(d.nkt2.m)||0;
+  const _mTotal = _m1 + _m2 || 1;
+  const _splitY = _m2>0 ? Math.round(_pTop + (_m1/_mTotal)*_pH) : _pBot;
+  // X-координаты секций
+  const _x1L = _cx - _w1/2, _x1R = _cx + _w1/2;
+  const _x2L = _cx - _w2/2, _x2R = _cx + _w2/2;
+  // Блоки оборудования шире трубы на 8px
+  const _bw = Math.max(_w1,_w2) + 10;
+  const _bx = _cx - _bw/2;
+  // Скобка справа
+  const _brX = _cx + _maxD/2*0.5 + 22;
+
+  // Трапеция перехода (если диаметры разные)
+  const _hasTrans = Math.abs(_w1-_w2)>1 && _m1>0 && _m2>0;
+  const _transH = _hasTrans ? 10 : 0;
+  const _transY = _splitY - _transH;
+
+  // Нижняя труба начинается после перехода
+  const _pipe2StartY = _splitY;
+
+  const svgSchema = `
+<svg viewBox="0 0 120 580" width="100%" style="display:block;max-width:130px;margin:0 auto;" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- НКТ 1 ступень (верхняя) -->
+  <rect x="${_x1L}" y="${_pTop}" width="${_w1}" height="${_splitY-_pTop}" fill="#f0f4f8" stroke="#333" stroke-width="1.4"/>
+  <line x1="${_x1L+4}" y1="${_pTop}" x2="${_x1L+4}" y2="${_splitY}" stroke="#bbb" stroke-width="0.6" stroke-dasharray="4,3"/>
+  <line x1="${_x1R-4}" y1="${_pTop}" x2="${_x1R-4}" y2="${_splitY}" stroke="#bbb" stroke-width="0.6" stroke-dasharray="4,3"/>
+  <!-- Метка d1 слева -->
+  <text x="${_x1L-2}" y="${Math.round(_pTop+(_splitY-_pTop)/2)}" text-anchor="end" font-size="5" font-family="Arial" fill="#555">∅${_d1}</text>
+
+  <!-- Переход между ступенями (трапеция, если разные диаметры) -->
+  ${_hasTrans ? `<polygon points="${_x1L},${_splitY} ${_x1R},${_splitY} ${_x2R},${_splitY+_transH} ${_x2L},${_splitY+_transH}" fill="#dde4ee" stroke="#333" stroke-width="1"/>` : ''}
+
+  <!-- НКТ 2 ступень (нижняя) -->
+  ${_m2>0 ? `
+  <rect x="${_x2L}" y="${_splitY+_transH}" width="${_w2}" height="${_pBot-_splitY-_transH}" fill="#e8eef4" stroke="#333" stroke-width="1.4"/>
+  <line x1="${_x2L+4}" y1="${_splitY+_transH}" x2="${_x2L+4}" y2="${_pBot}" stroke="#bbb" stroke-width="0.6" stroke-dasharray="4,3"/>
+  <line x1="${_x2R-4}" y1="${_splitY+_transH}" x2="${_x2R-4}" y2="${_pBot}" stroke="#bbb" stroke-width="0.6" stroke-dasharray="4,3"/>
+  <text x="${_x2L-2}" y="${Math.round(_splitY+_transH+(_pBot-_splitY-_transH)/2)}" text-anchor="end" font-size="5" font-family="Arial" fill="#555">∅${_d2}</text>
+  ` : ''}
+
+  <!-- Подвесной патрубок (шапка) -->
+  <rect x="${_x1L-8}" y="14" width="${_w1+16}" height="12" fill="#c8d8e8" stroke="#333" stroke-width="1" rx="2"/>
+  <text x="${_cx}" y="23" text-anchor="middle" font-size="5" font-family="Arial" fill="#000">Подв.патр. L=${d.patr.l||'_'}м</text>
+
+  <!-- Ловитель скребков -->
+  <rect x="${_bx}" y="78" width="${_bw}" height="18" fill="#d4ead4" stroke="#555" stroke-width="0.8" rx="2"/>
+  <text x="${_cx}" y="90" text-anchor="middle" font-size="5.5" font-family="Arial" fill="#111">Лов.скребков</text>
+  <line x1="4" y1="87" x2="${_bx}" y2="87" stroke="#444" stroke-width="0.7"/>
+  <text x="2" y="85" text-anchor="start" font-size="4.5" font-family="Arial" fill="#222">${d.lov_nkt||'_'} НКТ</text>
+  <polygon points="${_bx},87 ${_bx-5},85 ${_bx-5},89" fill="#444"/>
+
+  <!-- Сбивной клапан -->
+  <rect x="${_bx}" y="158" width="${_bw}" height="18" fill="#dce4f8" stroke="#555" stroke-width="0.8" rx="2"/>
+  <text x="${_cx}" y="169" text-anchor="middle" font-size="5.5" font-family="Arial" fill="#111">Сбив.клапан</text>
+  <text x="${_cx}" y="177" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#444">НКТ №${d.sbiv.pos||'_'}</text>
+  <line x1="4" y1="167" x2="${_bx}" y2="167" stroke="#444" stroke-width="0.7"/>
+  <polygon points="${_bx},167 ${_bx-5},165 ${_bx-5},169" fill="#444"/>
+
+  <!-- Шламоуловитель -->
+  <rect x="${_bx}" y="232" width="${_bw}" height="18" fill="#fdf0cc" stroke="#555" stroke-width="0.8" rx="2"/>
+  <text x="${_cx}" y="243" text-anchor="middle" font-size="5.5" font-family="Arial" fill="#111">Шламоул.</text>
+  <text x="${_cx}" y="251" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#444">НКТ №${d.shlam.pos||'_'}</text>
+  <line x1="4" y1="241" x2="${_bx}" y2="241" stroke="#444" stroke-width="0.7"/>
+  <polygon points="${_bx},241 ${_bx-5},239 ${_bx-5},243" fill="#444"/>
+
+  <!-- 2-й обратный клапан -->
+  <rect x="${_bx}" y="296" width="${_bw}" height="18" fill="#fde0e0" stroke="#555" stroke-width="0.8" rx="2"/>
+  <text x="${_cx}" y="307" text-anchor="middle" font-size="5.5" font-family="Arial" fill="#111">2-й ОК</text>
+  <text x="${_cx}" y="315" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#444">НКТ №${d.ok2.pos||'_'}</text>
+  <line x1="4" y1="305" x2="${_bx}" y2="305" stroke="#444" stroke-width="0.7"/>
+  <polygon points="${_bx},305 ${_bx-5},303 ${_bx-5},307" fill="#444"/>
+
+  <!-- 1-й обратный клапан -->
+  <rect x="${_bx}" y="354" width="${_bw}" height="18" fill="#fde0e0" stroke="#555" stroke-width="0.8" rx="2"/>
+  <text x="${_cx}" y="365" text-anchor="middle" font-size="5.5" font-family="Arial" fill="#111">1-й ОК</text>
+  <text x="${_cx}" y="373" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#444">НКТ №${d.ok1.pos||'_'}</text>
+  <line x1="4" y1="363" x2="${_bx}" y2="363" stroke="#444" stroke-width="0.7"/>
+  <polygon points="${_bx},363 ${_bx-5},361 ${_bx-5},365" fill="#444"/>
+
+  <!-- Скобка глубины НКТ (справа) -->
+  <line x1="${_x1R+2}" y1="${_pTop}" x2="${_x1R+10}" y2="${_pTop}" stroke="#666" stroke-width="0.7"/>
+  <line x1="${_x2R+2}" y1="${_pBot}" x2="${_x1R+10}" y2="${_pBot}" stroke="#666" stroke-width="0.7"/>
+  <line x1="${_x1R+6}" y1="${_pTop}" x2="${_x1R+6}" y2="${_pBot}" stroke="#666" stroke-width="0.7"/>
+  <text x="${_x1R+8}" y="${Math.round((_pTop+_pBot)/2)-4}" text-anchor="start" font-size="4.5" font-family="Arial" fill="#000">${d.depth_nkt||'_'}</text>
+  <text x="${_x1R+8}" y="${Math.round((_pTop+_pBot)/2)+4}" text-anchor="start" font-size="4.5" font-family="Arial" fill="#000">м НКТ</text>
+
+  <!-- УЭЦН блок -->
+  <rect x="${_cx-28}" y="416" width="56" height="80" fill="#c4d8ec" stroke="#222" stroke-width="1.5" rx="3"/>
+  <text x="${_cx}" y="432" text-anchor="middle" font-size="7" font-weight="bold" font-family="Arial" fill="#000">УЭЦН</text>
+  <line x1="${_cx-28}" y1="438" x2="${_cx+28}" y2="438" stroke="#666" stroke-width="0.6"/>
+  <text x="${_cx}" y="450" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#222">${(d.uecn||'').slice(0,20)}</text>
+  <text x="${_cx}" y="462" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#333">L = ${d.uecn_len||'_'} м</text>
+  <line x1="${_cx-28}" y1="468" x2="${_cx+28}" y2="468" stroke="#666" stroke-width="0.6"/>
+  <text x="${_cx}" y="480" text-anchor="middle" font-size="4" font-family="Arial" fill="#333">${(d.zakanchivanie||'').slice(0,22)}</text>
+  <text x="${_cx}" y="490" text-anchor="middle" font-size="4" font-family="Arial" fill="#333">${(d.zakanchivanie||'').slice(22,44)}</text>
+
+  <!-- Конус-наконечник -->
+  <polygon points="${_cx-14},496 ${_cx+14},496 ${_cx},514" fill="#a0b8cc" stroke="#333" stroke-width="1"/>
+
+  <!-- Скобка глубины ЭЦН -->
+  <line x1="${_cx+30}" y1="416" x2="${_cx+38}" y2="416" stroke="#666" stroke-width="0.7"/>
+  <line x1="${_cx+30}" y1="514" x2="${_cx+38}" y2="514" stroke="#666" stroke-width="0.7"/>
+  <line x1="${_cx+34}" y1="416" x2="${_cx+34}" y2="514" stroke="#666" stroke-width="0.7"/>
+  <text x="${_cx+36}" y="465" text-anchor="start" font-size="4.5" font-family="Arial" fill="#000">${d.depth_ecn||'_'}м</text>
+
+  <!-- Хвостовики -->
+  <rect x="${_cx-16}" y="514" width="32" height="46" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="${_cx}" y="533" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#666">хвост.</text>
+  <text x="${_cx}" y="545" text-anchor="middle" font-size="4" font-family="Arial" fill="#888">${d.hvost[0]?d.hvost[0][0]+'мм':''}</text>
+
+  <!-- Перфорация -->
+  <rect x="${_cx-16}" y="560" width="32" height="14" fill="#ffccaa" stroke="#c06020" stroke-width="0.8" rx="1"/>
+  <text x="${_cx}" y="570" text-anchor="middle" font-size="4.5" font-family="Arial" fill="#903010">Перф. ${d.perf_kol||''}</text>
+</svg>`;
+
+  const tblStyle = 'width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:5pt;';
+  const thStyle = 'border:1px solid #000;padding:3pt 4pt;background:#e8e8e8;font-weight:bold;text-align:center;';
+  const tdStyle = 'border:1px solid #000;padding:2pt 4pt;text-align:center;';
+  const secTitle = 'font-weight:bold;font-size:7.5pt;border-bottom:1px solid #888;margin-bottom:3pt;padding-bottom:1pt;margin-top:5pt;';
+  const row = (label, val) => `<div style="font-size:7pt;margin-bottom:2pt;">${label}: <b>${val||'___'}</b></div>`;
+
+  return `
+<div style="font-weight:bold;font-size:11pt;text-align:center;margin-bottom:6pt;">Схема компоновки скважинного оборудования ЭЦН</div>
+
+<table style="width:100%;border-collapse:collapse;font-size:8pt;margin-bottom:6pt;">
+<tr>
+  <td style="border:1px solid #000;padding:2pt 5pt;"><b>${d.cdng||'ЦДНГ'}</b></td>
+  <td style="border:1px solid #000;padding:2pt 5pt;">Месторождение: <b>${d.mesto||'___'}</b></td>
+  <td style="border:1px solid #000;padding:2pt 5pt;">скважина <b>${d.skv||'___'}</b></td>
+  <td style="border:1px solid #000;padding:2pt 5pt;">куст <b>${d.kust||'___'}</b></td>
+  <td style="border:1px solid #000;padding:2pt 5pt;">Дата: <b>${fmtDate(d.date)}</b></td>
+</tr>
+</table>
+
+<table style="width:100%;border-collapse:collapse;" cellspacing="0" cellpadding="0">
+<colgroup><col style="width:38%"><col style="width:24%"><col style="width:38%"></colgroup>
+<tr>
+
+<!-- ══ ЛЕВАЯ КОЛОННА ══ -->
+<td style="vertical-align:top;padding-right:5pt;border-right:1px solid #bbb;">
+
+  <div style="${secTitle}">Эксплуатационная колонна</div>
+  <table style="${tblStyle}">
+    <tr><th style="${thStyle}">Диам., мм</th><th style="${thStyle}">Интервал, м</th><th style="${thStyle}">Толщ., мм</th></tr>
+    ${ekRows}
+  </table>
+
+  <div style="${secTitle}">Данные по НКТ</div>
+  ${row('Общая длина НКТ', d.nkt_len + ' м')}
+  ${row('Вес НКТ при посадке ПШ', d.nkt_ves + ' тонн')}
+  ${row('Срыв ПШ', d.nkt_sryv + ' тонн')}
+
+  <div style="font-size:6.5pt;color:#333;margin:4pt 0;border:1px solid #ccc;padding:3pt;border-radius:2pt;">
+    Крепление погружного кабеля по НКТ производить:<br><b>${d.cable_krepl||'___'}</b>
+  </div>
+
+  <div style="${secTitle}">Оборудование компоновки</div>
+  <div style="font-size:7pt;margin-bottom:2pt;">Ловитель скребков установить на: <b>${d.lov_nkt||'_'}</b> НКТ от сбивного клапана</div>
+  <div style="font-size:7pt;margin-bottom:2pt;">Сбивной клапан — на <b>${d.sbiv.pos||'_'}</b> НКТ от УЭЦН № <b>${d.sbiv.nkt||'_'}</b></div>
+  <div style="font-size:7pt;margin-bottom:2pt;">Шламоуловитель — на <b>${d.shlam.pos||'_'}</b> НКТ от УЭЦН № <b>${d.shlam.nkt||'_'}</b></div>
+  <div style="font-size:7pt;margin-bottom:2pt;">2-й обратный клапан — на <b>${d.ok2.pos||'_'}</b> НКТ от УЭЦН № <b>${d.ok2.nkt||'_'}</b></div>
+  <div style="font-size:7pt;margin-bottom:4pt;">1-й обратный клапан — на <b>${d.ok1.pos||'_'}</b> НКТ от УЭЦН № <b>${d.ok1.nkt||'_'}</b></div>
+
+  <div style="${secTitle}">Спуск НКТ (факт)</div>
+  <table style="${tblStyle}">
+    <tr><th style="${thStyle}">НКТ</th><th style="${thStyle}">Марка</th><th style="${thStyle}">Шт.</th><th style="${thStyle}">Метры</th><th style="${thStyle}">Новизна</th></tr>
+    ${spuskRows}
+    <tr><td colspan="2" style="${tdStyle}"><b>Всего</b></td><td style="${tdStyle}"></td><td style="${tdStyle}"></td><td style="${tdStyle}"></td></tr>
+  </table>
+
+  <div style="${secTitle}">Хвостовики</div>
+  <table style="${tblStyle}">
+    <tr><th style="${thStyle}">Диам., мм</th><th style="${thStyle}">Толщ., мм</th><th style="${thStyle}">Голова хв., м</th></tr>
+    ${hvostRows}
+  </table>
+  <div style="font-size:7pt;margin-bottom:4pt;">Интервал перфорации: <b>${d.perf_kol||'___'}</b> — <b>${d.perf_m||'___'}</b></div>
+
+  <div style="font-size:7pt;margin-bottom:2pt;">СПО, кол-во: <b>${d.spo_kol||'_'}</b> &nbsp;&nbsp; МРП, сут: <b>${d.mrp||'_'}</b></div>
+
+  <div style="${secTitle}">Данные по спуску</div>
+  <div style="font-size:7pt;margin-bottom:2pt;">Спуск производила бригада № <b>${d.brigada||'___'}</b></div>
+  <div style="font-size:7pt;margin-bottom:2pt;">Мастер: <b>${d.master||'___'}</b></div>
+  <div style="font-size:7pt;">Дата спуска: <b>${fmtDate(d.date_spusk)}</b></div>
+</td>
+
+<!-- ══ ЦЕНТР — СХЕМА ══ -->
+<td style="vertical-align:top;text-align:center;padding:0 3pt;border-right:1px solid #bbb;">
+  <div style="font-size:6.5pt;font-weight:bold;text-align:center;margin-bottom:4pt;">Схема колонны</div>
+  ${svgSchema}
+</td>
+
+<!-- ══ ПРАВАЯ КОЛОННА ══ -->
+<td style="vertical-align:top;padding-left:5pt;">
+
+  <div style="${secTitle}">Подвесной патрубок</div>
+  <div style="font-size:7pt;margin-bottom:1pt;">L = <b>${d.patr.l||'_'}</b> м &nbsp; Марка: <b>${d.patr.mark||'_'}</b> &nbsp; № <b>${d.patr.mm||'_'}</b></div>
+
+  <div style="${secTitle}">НКТ 1 ступень</div>
+  <table style="${tblStyle}">
+    <tr><th style="${thStyle}">Диам.</th><th style="${thStyle}">Марка</th><th style="${thStyle}">Кол-во</th><th style="${thStyle}">Метраж</th></tr>
+    <tr><td style="${tdStyle}">${d.nkt1.d||''}</td><td style="${tdStyle}">${d.nkt1.mark||''}</td><td style="${tdStyle}">${d.nkt1.kol||''}</td><td style="${tdStyle}">${d.nkt1.m||''}</td></tr>
+  </table>
+  <div style="font-size:6.5pt;margin-bottom:3pt;">СПО, кол-во: _______ &nbsp; МРП, сут: _______</div>
+
+  <div style="${secTitle}">НКТ 2 ступень</div>
+  <table style="${tblStyle}">
+    <tr><th style="${thStyle}">Диам.</th><th style="${thStyle}">Марка</th><th style="${thStyle}">Кол-во</th><th style="${thStyle}">Метраж</th></tr>
+    <tr><td style="${tdStyle}">${d.nkt2.d||''}</td><td style="${tdStyle}">${d.nkt2.mark||''}</td><td style="${tdStyle}">${d.nkt2.kol||''}</td><td style="${tdStyle}">${d.nkt2.m||''}</td></tr>
+  </table>
+  <div style="font-size:6.5pt;margin-bottom:3pt;">СПО, кол-во: _______ &nbsp; МРП, сут: _______</div>
+
+  <div style="${secTitle}">Ловитель скребков</div>
+  <div style="font-size:7pt;margin-bottom:3pt;">Установить на <b>${d.lov_nkt||'_'}</b> НКТ от сбивного клапана</div>
+
+  <div style="${secTitle}">УЭЦН</div>
+  <div style="font-size:7pt;font-weight:bold;margin-bottom:2pt;">${d.uecn||'___'}</div>
+  ${row('Заканчивание УЭЦН', d.zakanchivanie)}
+  ${row('Длина установки', d.uecn_len + ' м')}
+  ${row('Крепление кабеля (р-н УЭЦН)', d.cable_fix)}
+
+  <div style="background:#e4f0e4;border:1px solid #aaa;border-radius:3pt;padding:5pt;margin:5pt 0;text-align:center;">
+    <div style="font-size:6pt;color:#444;">Глубина спуска по НКТ, м</div>
+    <div style="font-size:16pt;font-weight:bold;line-height:1.1;">${d.depth_nkt||'___'}</div>
+  </div>
+
+  <div style="background:#e4e4f4;border:1px solid #aaa;border-radius:3pt;padding:5pt;margin-bottom:5pt;text-align:center;">
+    <div style="font-size:6pt;color:#444;">Глубина спуска по ЭЦН, м</div>
+    <div style="font-size:16pt;font-weight:bold;line-height:1.1;">${d.depth_ecn||'___'}</div>
+  </div>
+
+  ${d.recom ? `<div style="border:1px solid #bbb;border-radius:2pt;padding:4pt;font-size:6.5pt;color:#333;"><b>Рекомендации:</b><br>${d.recom}</div>` : ''}
+</td>
+
+</tr>
+</table>
+
+<!-- ПОДПИСИ -->
+<div style="margin-top:12pt;border-top:1px solid #999;padding-top:6pt;font-size:8.5pt;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10pt;">
+    <span>${d.tech_dolzh||'Технолог'}</span>
+    <span style="flex:1;border-bottom:1px solid #000;margin:0 8pt;display:inline-block;"></span>
+    <span>${d.technolog||''}</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+    <span>Мастер ПРС/КРС</span>
+    <span style="flex:1;border-bottom:1px solid #000;margin:0 8pt;display:inline-block;"></span>
+    <span>${d.master||''}</span>
+  </div>
+</div>`;
+}
+
+/* ── Предпросмотр ── */
+function previewPrint() {
+  const d = getData();
+  document.getElementById('previewContent').innerHTML = buildPrintHTML(d);
+  document.getElementById('previewModal').classList.add('active');
+}
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('active');
+}
+
+/* ── Печать/PDF ── */
+function printPDF() {
+  closePreview();
+  const d = getData();
+  document.getElementById('printView').innerHTML = buildPrintHTML(d);
+  setTimeout(()=>window.print(), 200);
+}
+
+/* ── Сохранение в localStorage ── */
+function saveLocal() {
+  const d = getData();
+  const key = `komp_${d.skv||'0'}_${Date.now()}`;
+  const saved = JSON.parse(localStorage.getItem('kompanovki')||'[]');
+  saved.unshift({key, skv:d.skv, kust:d.kust, mesto:d.mesto, date:d.date, data:d, ts:Date.now()});
+  localStorage.setItem('kompanovki', JSON.stringify(saved));
+  renderSaved();
+}
+
+function renderSaved() {
+  const saved = JSON.parse(localStorage.getItem('kompanovki')||'[]');
+  const el = document.getElementById('savedList');
+  if(!saved.length){el.innerHTML='<div style="text-align:center;color:var(--text3);font-size:0.55rem;padding:12px;">Нет сохранённых</div>';return;}
+  el.innerHTML = saved.map((s,i)=>`
+    <div class="saved-item">
+      <div class="info">Скв. ${s.skv||'?'} / куст ${s.kust||'?'} — ${s.mesto||''}<small>${fmtDate(s.date)} · ${new Date(s.ts).toLocaleString('ru')}</small></div>
+      <div class="actions">
+        <button class="btn btn-sm btn-outline" onclick="loadSaved(${i})">📂</button>
+        <button class="btn btn-sm btn-outline" onclick="deleteSaved(${i})" style="border-color:var(--red);color:var(--red);">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function loadSaved(i) {
+  const saved = JSON.parse(localStorage.getItem('kompanovki')||'[]');
+  if(!saved[i]) return;
+  const d = saved[i].data;
+  const set = (id,val) => {const el=document.getElementById(id);if(el)el.value=val||'';};
+  set('f_cdng',d.cdng); set('f_date',d.date); set('f_mesto',d.mesto);
+  set('f_skv',d.skv); set('f_kust',d.kust);
+  set('f_nkt1_d',d.nkt1?.d); set('f_nkt1_mark',d.nkt1?.mark); set('f_nkt1_kol',d.nkt1?.kol); set('f_nkt1_m',d.nkt1?.m);
+  set('f_nkt2_d',d.nkt2?.d); set('f_nkt2_mark',d.nkt2?.mark); set('f_nkt2_kol',d.nkt2?.kol); set('f_nkt2_m',d.nkt2?.m);
+  set('f_nkt_len',d.nkt_len); set('f_nkt_steel',d.nkt_steel);
+  set('f_nkt_ves',d.nkt_ves); set('f_nkt_sryv',d.nkt_sryv);
+  set('f_patr_l',d.patr?.l); set('f_patr_mark',d.patr?.mark); set('f_patr_mm',d.patr?.mm);
+  set('f_lov_nkt',d.lov_nkt);
+  set('f_sbiv_pos',d.sbiv?.pos); set('f_sbiv_nkt',d.sbiv?.nkt);
+  set('f_shlam_pos',d.shlam?.pos); set('f_shlam_nkt',d.shlam?.nkt);
+  set('f_ok2_pos',d.ok2?.pos); set('f_ok2_nkt',d.ok2?.nkt);
+  set('f_ok1_pos',d.ok1?.pos); set('f_ok1_nkt',d.ok1?.nkt);
+  set('f_uecn',d.uecn); set('f_depth_nkt',d.depth_nkt); set('f_depth_ecn',d.depth_ecn);
+  set('f_zakanchivanie',d.zakanchivanie); set('f_uecn_len',d.uecn_len);
+  set('f_cable_fix',d.cable_fix);
+  set('f_perf_int',d.perf_int); set('f_perf_kol',d.perf_kol); set('f_perf_m',d.perf_m);
+  set('f_cable_krepl',d.cable_krepl); set('f_spo_kol',d.spo_kol); set('f_mrp',d.mrp);
+  set('f_technolog',d.technolog); set('f_tech_dolzh',d.tech_dolzh);
+  set('f_master',d.master); set('f_brigada',d.brigada); set('f_date_spusk',d.date_spusk);
+  set('f_recom',d.recom);
+
+  // Restore table rows
+  restoreTable('tbl_ek', d.ek, 3);
+  restoreTable('tbl_spusk', d.spusk, 5);
+  restoreTable('tbl_hvost', d.hvost, 3);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function restoreTable(tblId, rows, cols) {
+  if(!rows||!rows.length) return;
+  const tbody = document.getElementById(tblId).querySelector('tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    for(let i=0;i<cols;i++) tr.innerHTML += `<td><input value="${r[i]||''}"></td>`;
+    tr.innerHTML += '<td><button class="del-btn" onclick="delRow(this)">×</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function deleteSaved(i) {
+  const saved = JSON.parse(localStorage.getItem('kompanovki')||'[]');
+  saved.splice(i,1);
+  localStorage.setItem('kompanovki', JSON.stringify(saved));
+  renderSaved();
+}
+
+function clearForm() {
+  document.querySelectorAll('main input, main select, main textarea').forEach(el => el.value = '');
+  // Reset tables to 1 empty row
+  ['tbl_ek','tbl_spusk','tbl_hvost'].forEach(id => {
+    const tbody = document.getElementById(id).querySelector('tbody');
+    const cols = tbody.rows[0] ? tbody.rows[0].querySelectorAll('input').length : 3;
+    tbody.innerHTML = '';
+    const tr = document.createElement('tr');
+    for(let i=0;i<cols;i++) tr.innerHTML += '<td><input></td>';
+    tr.innerHTML += '<td><button class="del-btn" onclick="delRow(this)">×</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Set today's date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f_date').value = today;
+  renderSaved();
+});
+</script>
+
+</body>
+</html>
