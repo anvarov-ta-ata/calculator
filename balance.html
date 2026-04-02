@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Баланс жидкости ДНГ</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #000;
+  color: #EBEBF5;
+  font-family: -apple-system,'SF Pro Display','Helvetica Neue',Arial,sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+header {
+  background: #000;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+}
+header a {
+  color: #FFF;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+header h1 { font-size: 0.65rem; letter-spacing: 2px; color: #FFF; font-weight: 600; flex:1; text-align:center; }
+.tabs {
+  display: flex; gap: 6px; padding: 10px 12px;
+  overflow-x: auto; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.tab-btn {
+  padding: 7px 14px; background: #1C1C1E; border: none; border-radius: 10px;
+  color: #8E8E93; font-family: inherit; font-size: 0.6rem; letter-spacing: 1px;
+  cursor: pointer; white-space: nowrap;
+}
+.tab-btn.active { background: #FFF; color: #000; }
+main { padding: 12px; max-width: 700px; margin: 0 auto; }
+.view { display: none; }
+.view.active { display: block; }
+.card {
+  background: #1C1C1E;
+  border-radius: 14px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 14px; margin-bottom: 12px;
+}
+.card-title {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 2px;
+  color: #FFF; margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.field label { display: block; font-size: 0.5rem; color: #8E8E93; letter-spacing: 1px; margin-bottom: 3px; text-transform: uppercase; }
+.field input {
+  width: 100%; background: #2C2C2E; border: none; border-radius: 10px;
+  padding: 8px 10px; color: #FFF; font-size: 0.8rem; font-family: inherit;
+}
+.field input:focus { background: #3A3A3C; outline: none; }
+.pad-block {
+  background: #1C1C1E;
+  border-radius: 14px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.pad-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; cursor: pointer;
+  user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.pad-name { font-size: 0.75rem; font-weight: 600; color: #FFF; letter-spacing: 1px; }
+.pad-stats { font-size: 0.55rem; color: #8E8E93; margin-top: 2px; }
+.pad-arrow { color: #8E8E93; font-size: 0.8rem; transition: transform 0.2s; }
+.pad-body { display: none; padding: 0 14px 14px; }
+.pad-body.open { display: block; }
+.pad-controls { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-end; }
+.pad-controls .field { flex: 1; }
+.pad-del-btn {
+  background: #FF453A; border: none; border-radius: 10px; color: #FFF;
+  padding: 8px 12px; font-size: 0.6rem; cursor: pointer; white-space: nowrap; align-self: flex-end;
+}
+.tbl-wrap { overflow-x: auto; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 0.6rem; min-width: 540px; }
+thead tr { background: #2C2C2E; }
+th {
+  padding: 7px 3px; text-align: center; color: #8E8E93;
+  font-weight: 500; font-size: 0.48rem; letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255,255,255,0.08); white-space: nowrap;
+}
+th.left { text-align: left; }
+td { padding: 5px 3px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); color: #EBEBF5; }
+td.left { text-align: left; }
+td input {
+  width: 100%; background: transparent; border: none; color: #FFF;
+  font-family: 'Courier New', monospace; font-size: 0.68rem; text-align: center;
+  padding: 2px 2px; border-radius: 6px; min-width: 40px;
+}
+td input:focus { background: #3A3A3C; outline: none; }
+td input.name-inp { text-align: left; min-width: 65px; }
+tr.total-row td { background: #2C2C2E; font-weight: 700; color: #FFF; font-family: 'Courier New', monospace; font-size: 0.65rem; }
+.ok { color: #30D158; }
+.bad { color: #FF453A; }
+.total-card {
+  background: #2C2C2E;
+  border-radius: 14px;
+  border-top: 2px solid #FFF;
+  padding: 14px; margin-bottom: 12px;
+}
+.sum-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.72rem;
+}
+.sum-row:last-child { border-bottom: none; }
+.sum-lbl { color: #8E8E93; }
+.sum-val { font-family: 'Courier New', monospace; font-weight: 700; }
+.btn {
+  width: 100%; padding: 11px; border: none; border-radius: 12px;
+  font-family: inherit; font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 1px; cursor: pointer; margin-bottom: 8px;
+}
+.btn:active { opacity: 0.75; }
+.btn-white  { background: #FFF; color: #000; }
+.btn-blue   { background: #0A84FF; color: #FFF; }
+.btn-green  { background: #30D158; color: #000; }
+.btn-outline{ background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #FFF; }
+.hist-tbl { width: 100%; font-size: 0.58rem; font-family: 'Courier New', monospace; }
+.hist-tbl th { background: #2C2C2E; padding: 6px 3px; color: #8E8E93; text-align: center; white-space: nowrap; }
+.hist-tbl td { padding: 5px 3px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.hist-tbl td.left { text-align: left; }
+textarea {
+  width: 100%; background: #2C2C2E; border: none; border-radius: 10px;
+  padding: 10px; color: #FFF; font-family: inherit; font-size: 0.75rem;
+  resize: vertical; min-height: 80px;
+}
+textarea:focus { background: #3A3A3C; outline: none; }
+.add-pad-btn {
+  width: 100%; padding: 14px; background: transparent;
+  border: 1px dashed rgba(255,255,255,0.2); border-radius: 14px;
+  color: #8E8E93; font-family: inherit; font-size: 0.65rem;
+  letter-spacing: 1px; cursor: pointer; margin-bottom: 12px;
+}
+.add-pad-btn:active { background: #1C1C1E; }
+footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  text-align: center; padding: 6px; font-size: 0.45rem;
+  color: #636366; letter-spacing: 2px; background: #000;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← НАЗАД</a>
+  <h1>🛢 БАЛАНС ЖИДКОСТИ</h1>
+  <div style="width:72px;"></div>
+</header>
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('input',this)">ВВОД ДАННЫХ</button>
+  <button class="tab-btn" onclick="switchTab('total',this)">ИТОГ ЦДНГ</button>
+  <button class="tab-btn" onclick="switchTab('history',this)">ИСТОРИЯ</button>
+  <button class="tab-btn" onclick="switchTab('help',this)">ИНСТРУКЦИЯ</button>
+</div>
+<main>
+
+<!-- ВВОД -->
+<div id="tab-input" class="view active">
+  <div class="card">
+    <div class="card-title">📋 ОБЩИЕ ДАННЫЕ</div>
+    <div class="meta-grid">
+      <div class="field"><label>Дата</label><input type="date" id="meta_date"></div>
+      <div class="field"><label>ЦДНГ / Участок</label><input type="text" id="meta_cdng" placeholder="ЦДНГ"></div>
+      <div class="field"><label>Месторождение</label><input type="text" id="meta_field" placeholder=""></div>
+      <div class="field"><label>Технолог</label><input type="text" id="meta_tech" placeholder=""></div>
+    </div>
+  </div>
+  <div id="pads_container"></div>
+  <button class="add-pad-btn" onclick="addPad()">+ ДОБАВИТЬ КУСТ</button>
+  <button class="btn btn-white" onclick="calcAll()">⚙ РАССЧИТАТЬ ВСЕ ИТОГИ</button>
+  <button class="btn btn-green" onclick="saveDay()">💾 СОХРАНИТЬ ДЕНЬ</button>
+  <button class="btn btn-blue" onclick="shareAll()">📤 ОТПРАВИТЬ ОТЧЁТ</button>
+</div>
+
+<!-- ИТОГ -->
+<div id="tab-total" class="view">
+  <div class="total-card">
+    <div class="card-title">🏭 ИТОГ ПО ЦДНГ</div>
+    <div id="total_date_lbl" style="font-size:0.6rem;color:#8E8E93;margin-bottom:12px;"></div>
+    <div class="sum-row"><span class="sum-lbl">Нефть план (т/сут)</span><span class="sum-val" id="g_oil_plan">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Нефть факт (т/сут)</span><span class="sum-val" id="g_oil_fact">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Отклонение нефть</span><span class="sum-val" id="g_oil_dev">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Выполнение нефть</span><span class="sum-val" id="g_oil_pct">—</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">💧 ЖИДКОСТЬ И ГАЗ</div>
+    <div class="sum-row"><span class="sum-lbl">Жидкость план (м³/сут)</span><span class="sum-val" id="g_liq_plan">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Жидкость факт (м³/сут)</span><span class="sum-val" id="g_liq_fact">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Выполнение жидкость</span><span class="sum-val" id="g_liq_pct">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Газ план (тыс.м³/сут)</span><span class="sum-val" id="g_gas_plan">—</span></div>
+    <div class="sum-row"><span class="sum-lbl">Газ факт (тыс.м³/сут)</span><span class="sum-val" id="g_gas_fact">—</span></div>
+  </div>
+  <div id="pads_summary"></div>
+  <div class="card">
+    <div class="card-title">💬 КОММЕНТАРИЙ ТЕХНОЛОГА</div>
+    <textarea id="tech_comment" placeholder="Введите комментарий..."></textarea>
+  </div>
+</div>
+
+<!-- ИСТОРИЯ -->
+<div id="tab-history" class="view">
+  <div class="card">
+    <div class="card-title">📈 ИСТОРИЯ — НАРАСТАЮЩИЙ ИТОГ</div>
+    <div class="tbl-wrap">
+      <table class="hist-tbl">
+        <thead><tr>
+          <th class="left">Дата</th><th>ЦДНГ</th>
+          <th>Н.пл.</th><th>Н.ф.</th><th>%</th>
+          <th>Ж.пл.</th><th>Ж.ф.</th><th>%</th>
+        </tr></thead>
+        <tbody id="history_body"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline" onclick="clearHistory()" style="margin-top:8px;">🗑 ОЧИСТИТЬ ИСТОРИЮ</button>
+  </div>
+</div>
+
+<!-- ИНСТРУКЦИЯ -->
+<div id="tab-help" class="view">
+  <div class="card">
+    <div class="card-title">📋 КАК ПОЛЬЗОВАТЬСЯ</div>
+    <div style="font-size:0.72rem;color:#EBEBF5;line-height:1.9;">
+      <div style="margin-bottom:6px;">1. Заполни <b>Дату</b>, <b>ЦДНГ</b>, <b>Месторождение</b>, <b>Технолога</b></div>
+      <div style="margin-bottom:6px;">2. Нажми <b>+ ДОБАВИТЬ КУСТ</b> — можно добавить любое количество кустов</div>
+      <div style="margin-bottom:6px;">3. В каждом кусте укажи название и количество скважин</div>
+      <div style="margin-bottom:6px;">4. Введи данные: название скважины, план/факт нефти, жидкости, газа</div>
+      <div style="margin-bottom:6px;">5. <b>⚙ РАССЧИТАТЬ</b> — считает отклонения и % по каждой скважине и кусту</div>
+      <div style="margin-bottom:6px;">6. <span style="color:#30D158;">Зелёный ≥ 95%</span> — план выполнен, <span style="color:#FF453A;">Красный</span> — не выполнен</div>
+      <div style="margin-bottom:6px;">7. Вкладка <b>ИТОГ ЦДНГ</b> — сводный по всем кустам и месторождению</div>
+      <div style="margin-bottom:6px;">8. <b>💾 СОХРАНИТЬ ДЕНЬ</b> — запись в историю (до 90 дней)</div>
+      <div style="margin-bottom:6px;">9. <b>📤 ОТПРАВИТЬ</b> — полный отчёт текстом через Telegram/WhatsApp</div>
+    </div>
+  </div>
+  <div class="card" style="border-top-color:rgba(255,159,10,0.5);">
+    <div class="card-title" style="color:#FF9F0A;">⚠ ВАЖНО</div>
+    <div style="font-size:0.72rem;color:#FF9F0A;line-height:1.7;">
+      Данные и история хранятся в памяти браузера. При очистке кэша удалятся. Отправляй отчёт ежедневно для резервной копии.
+    </div>
+  </div>
+</div>
+
+</main>
+<footer>DESIGNED &amp; CODED BY ANVAROV T.A. © 2026</footer>
+
+<script>
+var pads = [];
+var padIdSeq = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('meta_date').value = new Date().toISOString().split('T')[0];
+  loadState();
+  if(!pads.length) addPad();
+  renderPads();
+  renderHistory();
+  try { var c=localStorage.getItem('bal_comment'); if(c) document.getElementById('tech_comment').value=c; } catch(e){}
+});
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='total'){ collectFromDOM(); calcAll(); updateTotalView(); }
+  if(id==='history') renderHistory();
+}
+
+function addPad(name, wc) {
+  padIdSeq++;
+  var id = padIdSeq;
+  var n = wc||5;
+  var wells = [];
+  for(var i=0;i<n;i++) wells.push({name:'',op:'',of:'',lp:'',lf:'',gp:'',gf:''});
+  pads.push({id:id, name:name||'', wellCount:n, wells:wells});
+  renderPads();
+  setTimeout(function(){ var el=document.getElementById('pad-'+id); if(el) el.scrollIntoView({behavior:'smooth'}); },100);
+}
+
+function deletePad(id) {
+  if(!confirm('Удалить куст?')) return;
+  pads = pads.filter(function(p){ return p.id!==id; });
+  renderPads();
+}
+
+function renderPads() {
+  var c = document.getElementById('pads_container');
+  c.innerHTML = '';
+  pads.forEach(function(pad){ c.appendChild(buildPadEl(pad)); });
+}
+
+function buildPadEl(pad) {
+  var div = document.createElement('div');
+  div.className = 'pad-block';
+  div.id = 'pad-'+pad.id;
+  div.innerHTML =
+    '<div class="pad-header" onclick="togglePad('+pad.id+')">'+
+      '<div><div class="pad-name" id="pnl-'+pad.id+'">'+(pad.name||'Куст без названия')+'</div>'+
+      '<div class="pad-stats" id="pst-'+pad.id+'">'+pad.wells.length+' скважин</div></div>'+
+      '<span class="pad-arrow" id="par-'+pad.id+'">▼</span>'+
+    '</div>'+
+    '<div class="pad-body open" id="pbody-'+pad.id+'">'+
+      '<div class="pad-controls">'+
+        '<div class="field"><label>Название куста</label>'+
+          '<input type="text" placeholder="" value="'+esc(pad.name)+'" '+
+          'oninput="updatePadName('+pad.id+',this.value)"></div>'+
+        '<div class="field"><label>Скважин</label>'+
+          '<input type="number" min="1" max="50" value="'+pad.wells.length+'" '+
+          'oninput="resizePad('+pad.id+',this.value)"></div>'+
+        '<button class="pad-del-btn" onclick="deletePad('+pad.id+')">✕</button>'+
+      '</div>'+
+      '<div class="tbl-wrap" id="ptbl-'+pad.id+'"></div>'+
+    '</div>';
+  setTimeout(function(){ renderPadTable(pad.id); },0);
+  return div;
+}
+
+function togglePad(id) {
+  var b=document.getElementById('pbody-'+id), a=document.getElementById('par-'+id);
+  var open=b.classList.contains('open');
+  b.classList.toggle('open',!open);
+  b.style.display=open?'none':'block';
+  a.style.transform=open?'':'rotate(180deg)';
+}
+
+function updatePadName(id,val) {
+  var p=pads.find(function(p){return p.id===id;}); if(p) p.name=val;
+  var l=document.getElementById('pnl-'+id); if(l) l.textContent=val||'Куст без названия';
+}
+
+function resizePad(id,val) {
+  var pad=pads.find(function(p){return p.id===id;}); if(!pad) return;
+  var n=Math.max(1,parseInt(val)||1);
+  while(pad.wells.length<n) pad.wells.push({name:'',op:'',of:'',lp:'',lf:'',gp:'',gf:''});
+  pad.wellCount=n;
+  renderPadTable(id);
+}
+
+function renderPadTable(padId) {
+  var pad=pads.find(function(p){return p.id===padId;}); if(!pad) return;
+  var wrap=document.getElementById('ptbl-'+padId); if(!wrap) return;
+  var n=pad.wells.length;
+  var rows='';
+  for(var i=0;i<n;i++){
+    var w=pad.wells[i]||{};
+    rows+='<tr data-pad="'+padId+'" data-idx="'+i+'">'+
+      '<td class="left">'+(i+1)+'</td>'+
+      '<td class="left"><input class="name-inp" placeholder="Скв." value="'+esc(w.name)+'" oninput="sw('+padId+','+i+',\'name\',this.value)"></td>'+
+      '<td><input type="number" placeholder="0" value="'+esc(w.op)+'" oninput="sw('+padId+','+i+',\'op\',this.value);cr('+padId+','+i+')"></td>'+
+      '<td><input type="number" placeholder="0" value="'+esc(w.of)+'" oninput="sw('+padId+','+i+',\'of\',this.value);cr('+padId+','+i+')"></td>'+
+      '<td id="do_'+padId+'_'+i+'">—</td><td id="po_'+padId+'_'+i+'">—</td>'+
+      '<td><input type="number" placeholder="0" value="'+esc(w.lp)+'" oninput="sw('+padId+','+i+',\'lp\',this.value);cr('+padId+','+i+')"></td>'+
+      '<td><input type="number" placeholder="0" value="'+esc(w.lf)+'" oninput="sw('+padId+','+i+',\'lf\',this.value);cr('+padId+','+i+')"></td>'+
+      '<td id="dl_'+padId+'_'+i+'">—</td><td id="pl_'+padId+'_'+i+'">—</td>'+
+      '<td><input type="number" placeholder="0" value="'+esc(w.gp)+'" oninput="sw('+padId+','+i+',\'gp\',this.value)"></td>'+
+      '<td><input type="number" placeholder="0" value="'+esc(w.gf)+'" oninput="sw('+padId+','+i+',\'gf\',this.value)"></td>'+
+      '</tr>';
+  }
+  wrap.innerHTML=
+    '<table>'+
+    '<thead><tr><th class="left" rowspan="2">№</th><th class="left" rowspan="2">Скважина</th>'+
+    '<th colspan="4">НЕФТЬ (т/сут)</th><th colspan="4">ЖИДКОСТЬ (м³/сут)</th><th colspan="2">ГАЗ (тыс.м³/сут)</th></tr>'+
+    '<tr><th>Пл.</th><th>Ф.</th><th>Откл.</th><th>%</th>'+
+    '<th>Пл.</th><th>Ф.</th><th>Откл.</th><th>%</th><th>Пл.</th><th>Ф.</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr class="total-row">'+
+    '<td colspan="2" class="left">ИТОГО</td>'+
+    '<td id="to_op_'+padId+'">—</td><td id="to_of_'+padId+'">—</td>'+
+    '<td id="to_od_'+padId+'">—</td><td id="to_opct_'+padId+'">—</td>'+
+    '<td id="to_lp_'+padId+'">—</td><td id="to_lf_'+padId+'">—</td>'+
+    '<td id="to_ld_'+padId+'">—</td><td id="to_lpct_'+padId+'">—</td>'+
+    '<td id="to_gp_'+padId+'">—</td><td id="to_gf_'+padId+'">—</td>'+
+    '</tr></tfoot></table>';
+  for(var i=0;i<n;i++) cr(padId,i);
+}
+
+function sw(padId,i,key,val){ var p=pads.find(function(p){return p.id===padId;}); if(p&&p.wells[i]) p.wells[i][key]=val; }
+
+function cr(padId,i) {
+  var pad=pads.find(function(p){return p.id===padId;}); if(!pad||!pad.wells[i]) return;
+  var w=pad.wells[i];
+  function dp(f,p,type){
+    var id_d='d'+type+'_'+padId+'_'+i, id_p='p'+type+'_'+padId+'_'+i;
+    var ed=document.getElementById(id_d), ep=document.getElementById(id_p); if(!ed||!ep) return;
+    if(+p&&+f){ ed.textContent=(+f-+p).toFixed(1); var pct=((+f/+p)*100).toFixed(1); ep.textContent=pct+'%'; ep.className=parseFloat(pct)>=95?'ok':'bad'; }
+    else { ed.textContent='—'; ep.textContent='—'; ep.className=''; }
+  }
+  dp(w.of,w.op,'o'); dp(w.lf,w.lp,'l');
+}
+
+function calcPad(padId) {
+  var pad=pads.find(function(p){return p.id===padId;}); if(!pad) return null;
+  var t={op:0,of:0,lp:0,lf:0,gp:0,gf:0};
+  pad.wells.forEach(function(w){ t.op+=+w.op||0;t.of+=+w.of||0;t.lp+=+w.lp||0;t.lf+=+w.lf||0;t.gp+=+w.gp||0;t.gf+=+w.gf||0; });
+  function s(v){return v?v.toFixed(1):'0';}
+  function pct(f,p){return p?((f/p)*100).toFixed(1)+'%':'—';}
+  function cls(f,p){return p&&(f/p)*100>=95?'ok':'bad';}
+  function set(id,v,c){var el=document.getElementById(id);if(el){el.textContent=v;if(c)el.className=c;}}
+  set('to_op_'+padId,s(t.op)); set('to_of_'+padId,s(t.of));
+  set('to_od_'+padId,(t.of-t.op).toFixed(1));
+  set('to_opct_'+padId,pct(t.of,t.op),cls(t.of,t.op));
+  set('to_lp_'+padId,s(t.lp)); set('to_lf_'+padId,s(t.lf));
+  set('to_ld_'+padId,(t.lf-t.lp).toFixed(1));
+  set('to_lpct_'+padId,pct(t.lf,t.lp),cls(t.lf,t.lp));
+  set('to_gp_'+padId,s(t.gp)); set('to_gf_'+padId,s(t.gf));
+  var stats=document.getElementById('pst-'+padId);
+  if(stats) stats.textContent=pad.wells.length+' скв | Н:'+s(t.of)+'/'+s(t.op)+'т';
+  return t;
+}
+
+function collectFromDOM() {
+  pads.forEach(function(pad){
+    document.querySelectorAll('[data-pad="'+pad.id+'"]').forEach(function(tr){
+      var idx=parseInt(tr.dataset.idx);
+      if(isNaN(idx)||!pad.wells[idx]) return;
+      var inps=tr.querySelectorAll('input');
+      pad.wells[idx].name=inps[0]?inps[0].value:'';
+      pad.wells[idx].op=inps[1]?inps[1].value:'';
+      pad.wells[idx].of=inps[2]?inps[2].value:'';
+      pad.wells[idx].lp=inps[3]?inps[3].value:'';
+      pad.wells[idx].lf=inps[4]?inps[4].value:'';
+      pad.wells[idx].gp=inps[5]?inps[5].value:'';
+      pad.wells[idx].gf=inps[6]?inps[6].value:'';
+    });
+  });
+}
+
+function calcAll() {
+  collectFromDOM();
+  var g={op:0,of:0,lp:0,lf:0,gp:0,gf:0};
+  pads.forEach(function(pad){
+    for(var i=0;i<pad.wells.length;i++) cr(pad.id,i);
+    var t=calcPad(pad.id);
+    if(t){g.op+=t.op;g.of+=t.of;g.lp+=t.lp;g.lf+=t.lf;g.gp+=t.gp;g.gf+=t.gf;}
+  });
+  try{localStorage.setItem('bal_grand',JSON.stringify(g));}catch(e){}
+  return g;
+}
+
+function updateTotalView() {
+  var g=null; try{g=JSON.parse(localStorage.getItem('bal_grand')||'null');}catch(e){}
+  if(!g) g=calcAll();
+  var date=document.getElementById('meta_date').value;
+  var cdng=document.getElementById('meta_cdng').value;
+  document.getElementById('total_date_lbl').textContent=(date?'Дата: '+date:'')+(cdng?' | '+cdng:'');
+  function s(v){return v?v.toFixed(1):'—';}
+  function pct(f,p){return p?((f/p)*100).toFixed(1)+'%':'—';}
+  function dev(f,p){var d=(f-p).toFixed(1);return(f>=p?'+':'')+d;}
+  function cls(f,p){return'sum-val '+(p&&(f/p)*100>=95?'ok':'bad');}
+  document.getElementById('g_oil_plan').textContent=s(g.op)+' т/сут';
+  document.getElementById('g_oil_fact').textContent=s(g.of)+' т/сут';
+  var od=document.getElementById('g_oil_dev');od.textContent=dev(g.of,g.op)+' т/сут';od.className=cls(g.of,g.op);
+  var op=document.getElementById('g_oil_pct');op.textContent=pct(g.of,g.op);op.className=cls(g.of,g.op);
+  document.getElementById('g_liq_plan').textContent=s(g.lp)+' м³/сут';
+  document.getElementById('g_liq_fact').textContent=s(g.lf)+' м³/сут';
+  var lp=document.getElementById('g_liq_pct');lp.textContent=pct(g.lf,g.lp);lp.className=cls(g.lf,g.lp);
+  document.getElementById('g_gas_plan').textContent=s(g.gp)+' тыс.м³/сут';
+  document.getElementById('g_gas_fact').textContent=s(g.gf)+' тыс.м³/сут';
+  var ps=document.getElementById('pads_summary');
+  ps.innerHTML=pads.map(function(pad){
+    var t={op:0,of:0,lp:0,lf:0};
+    pad.wells.forEach(function(w){t.op+=+w.op||0;t.of+=+w.of||0;t.lp+=+w.lp||0;t.lf+=+w.lf||0;});
+    var pct=t.op?((t.of/t.op)*100).toFixed(0)+'%':'—';
+    var cls=t.op&&(t.of/t.op)*100>=95?'#30D158':'#FF453A';
+    return '<div class="card" style="margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'+
+      '<span style="font-size:0.7rem;font-weight:600;color:#FFF;">'+(pad.name||'Куст без названия')+'</span>'+
+      '<span style="font-size:0.65rem;color:'+cls+';font-weight:700;">'+pct+'</span></div>'+
+      '<div style="display:flex;gap:12px;font-size:0.65rem;font-family:Courier New,monospace;flex-wrap:wrap;">'+
+      '<span><span style="color:#8E8E93;">Н: </span>'+t.of.toFixed(1)+'/'+t.op.toFixed(1)+' т</span>'+
+      '<span><span style="color:#8E8E93;">Ж: </span>'+t.lf.toFixed(1)+'/'+t.lp.toFixed(1)+' м³</span>'+
+      '<span><span style="color:#8E8E93;">Скв: </span>'+pad.wells.length+'</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+function saveDay() {
+  var g=calcAll();
+  var entry={
+    date:document.getElementById('meta_date').value,
+    cdng:document.getElementById('meta_cdng').value,
+    field:document.getElementById('meta_field').value,
+    op:g.op,of:g.of,lp:g.lp,lf:g.lf,gp:g.gp,gf:g.gf,
+    pads:pads.length,ts:Date.now()
+  };
+  try{
+    var h=JSON.parse(localStorage.getItem('bal_history')||'[]');
+    h.unshift(entry); if(h.length>90)h=h.slice(0,90);
+    localStorage.setItem('bal_history',JSON.stringify(h));
+    localStorage.setItem('bal_comment',document.getElementById('tech_comment').value);
+    saveState();
+    alert('✅ Сохранено'); renderHistory();
+  }catch(e){alert('Ошибка сохранения');}
+}
+
+function clearHistory(){
+  if(confirm('Очистить всю историю?')){try{localStorage.removeItem('bal_history');}catch(e){} renderHistory();}
+}
+
+function renderHistory(){
+  var tbody=document.getElementById('history_body');
+  try{
+    var h=JSON.parse(localStorage.getItem('bal_history')||'[]');
+    if(!h.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#636366;padding:20px;">Нет данных</td></tr>';return;}
+    tbody.innerHTML=h.map(function(r){
+      var op=r.op?((r.of/r.op)*100).toFixed(0)+'%':'—';
+      var lp=r.lp?((r.lf/r.lp)*100).toFixed(0)+'%':'—';
+      var oc=r.op&&(r.of/r.op)*100>=95?'#30D158':'#FF453A';
+      var lc=r.lp&&(r.lf/r.lp)*100>=95?'#30D158':'#FF453A';
+      return'<tr><td class="left">'+r.date+'</td><td>'+(r.cdng||'—')+'</td>'+
+        '<td>'+(r.op?r.op.toFixed(0):'—')+'</td><td>'+(r.of?r.of.toFixed(0):'—')+'</td>'+
+        '<td style="color:'+oc+'">'+op+'</td>'+
+        '<td>'+(r.lp?r.lp.toFixed(0):'—')+'</td><td>'+(r.lf?r.lf.toFixed(0):'—')+'</td>'+
+        '<td style="color:'+lc+'">'+lp+'</td></tr>';
+    }).join('');
+  }catch(e){tbody.innerHTML='';}
+}
+
+function shareAll(){
+  var g=calcAll();
+  var date=document.getElementById('meta_date').value;
+  var cdng=document.getElementById('meta_cdng').value;
+  var field=document.getElementById('meta_field').value;
+  var tech=document.getElementById('meta_tech').value;
+  var comment=document.getElementById('tech_comment').value;
+  function s(v){return v?v.toFixed(1):'—';}
+  function pct(f,p){return p?((f/p)*100).toFixed(1)+'%':'—';}
+  var text='🛢 СУТОЧНЫЙ БАЛАНС ЖИДКОСТИ\n';
+  text+='📅 '+date+' | '+(cdng||'ЦДНГ')+'\n';
+  if(field) text+='📍 '+field+'\n';
+  if(tech) text+='👤 '+tech+'\n';
+  text+='━━━━━━━━━━━━━━━━\n';
+  text+='🛢 НЕФТЬ: '+s(g.of)+'/'+s(g.op)+' т/сут ('+pct(g.of,g.op)+')\n';
+  text+='💧 ЖИДКОСТЬ: '+s(g.lf)+'/'+s(g.lp)+' м³/сут ('+pct(g.lf,g.lp)+')\n';
+  text+='⛽ ГАЗ: '+s(g.gf)+'/'+s(g.gp)+' тыс.м³/сут\n';
+  text+='━━━━━━━━━━━━━━━━\n';
+  pads.forEach(function(pad){
+    var t={op:0,of:0,lp:0,lf:0,gp:0,gf:0};
+    pad.wells.forEach(function(w){t.op+=+w.op||0;t.of+=+w.of||0;t.lp+=+w.lp||0;t.lf+=+w.lf||0;t.gp+=+w.gp||0;t.gf+=+w.gf||0;});
+    text+='📍 '+(pad.name||'Куст')+':\n';
+    text+='  Нефть: '+t.of.toFixed(1)+'/'+t.op.toFixed(1)+' т ('+pct(t.of,t.op)+')\n';
+    text+='  Жидк.: '+t.lf.toFixed(1)+'/'+t.lp.toFixed(1)+' м³\n';
+    pad.wells.forEach(function(w){
+      if(!w.name&&!w.op&&!w.of) return;
+      var wp=w.op?(((+w.of||0)/(+w.op))*100).toFixed(0)+'%':'—';
+      text+='    '+(w.name||'Скв.')+': '+((+w.of)||0).toFixed(1)+'т/'+((+w.lf)||0).toFixed(1)+'м³ ('+wp+')\n';
+    });
+  });
+  if(comment) text+='━━━━━━━━━━━━━━━━\n💬 '+comment+'\n';
+  if(navigator.share){ navigator.share({title:'Баланс жидкости',text:text}); }
+  else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(function(){alert('Скопировано');});}
+}
+
+function saveState(){
+  try{
+    collectFromDOM();
+    localStorage.setItem('bal_state',JSON.stringify({
+      pads:pads, padIdSeq:padIdSeq,
+      meta:{
+        date:document.getElementById('meta_date').value,
+        cdng:document.getElementById('meta_cdng').value,
+        field:document.getElementById('meta_field').value,
+        tech:document.getElementById('meta_tech').value
+      }
+    }));
+  }catch(e){}
+}
+
+function loadState(){
+  try{
+    var s=JSON.parse(localStorage.getItem('bal_state')||'null');
+    if(!s) return;
+    pads=s.pads||[]; padIdSeq=s.padIdSeq||0;
+    if(s.meta){
+      if(s.meta.date) document.getElementById('meta_date').value=s.meta.date;
+      if(s.meta.cdng) document.getElementById('meta_cdng').value=s.meta.cdng;
+      if(s.meta.field) document.getElementById('meta_field').value=s.meta.field;
+      if(s.meta.tech) document.getElementById('meta_tech').value=s.meta.tech;
+    }
+  }catch(e){pads=[];padIdSeq=0;}
+}
+
+setInterval(saveState,30000);
+window.addEventListener('beforeunload',saveState);
+
+function esc(v){ return v?String(v).replace(/"/g,'&quot;').replace(/</g,'&lt;'):''; }
+</script>
+</body>
+</html>
