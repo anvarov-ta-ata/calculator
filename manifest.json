@@ -1,0 +1,41 @@
+{
+  "name": "ATA Oil & Gas Field Calculator",
+  "short_name": "ATA Calc",
+  "description": "Нефтегазовый промысловый калькулятор — 146 инженерных расчётов",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Параметры скважины",
+      "short_name": "Параметры",
+      "url": "/?view=params",
+      "description": "Быстрый замер параметров скважины"
+    },
+    {
+      "name": "Мониторинг добычи",
+      "short_name": "Мониторинг",
+      "url": "/monitoring.html",
+      "description": "Мониторинг добычи по скважинам"
+    }
+  ]
+}
