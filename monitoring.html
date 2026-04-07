@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>ATA — Мониторинг добычи</title>
+<style>
+:root {
+  --bg:#000;--card:#1C1C1E;--card2:#2C2C2E;--border:#3A3A3C;
+  --green:#30D158;--red:#FF453A;--yellow:#FFD60A;--blue:#0A84FF;--orange:#FF9F0A;
+  --text:#FFFFFF;--text2:#EBEBF5;--text3:#8E8E93;
+  --font:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;padding-bottom:110px;}
+
+/* HEADER */
+.hdr{display:flex;flex-direction:column;align-items:center;padding:14px 16px 10px;background:#0A0A0A;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.hdr-title{font-size:0.7rem;font-weight:700;letter-spacing:3px;color:#FFFFFF;text-align:center;margin-bottom:10px;}
+.menu-btn{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:0.55rem;font-family:var(--font);font-weight:600;letter-spacing:2px;padding:6px 24px;border-radius:20px;cursor:pointer;transition:.2s;}
+.menu-btn:active{background:var(--card2);}
+.bottom-menu{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 28px;background:linear-gradient(transparent,#000 40%);z-index:100;display:flex;justify-content:center;}
+
+/* TABS */
+.tabs{display:flex;gap:0;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:80px;padding:10px 6px;font-size:0.55rem;font-weight:700;letter-spacing:1px;text-align:center;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.2s;}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+
+/* PAGES */
+.page{display:none;padding:12px 14px;}
+.page.active{display:block;}
+
+/* CARDS */
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;}
+.card-title{font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text3);margin-bottom:10px;}
+
+/* FORM */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.frow.full{grid-template-columns:1fr;}
+.field label{display:block;font-size:0.5rem;letter-spacing:1px;color:var(--text3);margin-bottom:3px;}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--card2);border:none;border-radius:10px;
+  padding:9px 12px;color:var(--text);font-size:0.8rem;font-family:var(--font);outline:none;
+}
+.field select option{background:var(--card2);}
+.field textarea{resize:none;height:60px;}
+.btn{width:100%;padding:12px;border:none;border-radius:12px;font-family:var(--font);font-size:0.65rem;font-weight:700;letter-spacing:1.5px;cursor:pointer;margin-top:6px;}
+.btn-green{background:var(--green);color:#000;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text3);}
+
+/* STATUS PILLS */
+.status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.5rem;font-weight:700;letter-spacing:1px;}
+.s-work{background:rgba(48,209,88,.15);color:var(--green);}
+.s-stop{background:rgba(255,69,58,.15);color:var(--red);}
+.s-maint{background:rgba(255,159,10,.15);color:var(--orange);}
+
+/* STATS GRID */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.stat-card{background:var(--card);border-radius:12px;padding:12px;text-align:center;}
+.stat-val{font-size:1.4rem;font-weight:700;margin-bottom:2px;}
+.stat-lbl{font-size:0.5rem;letter-spacing:1px;color:var(--text3);}
+.stat-chg{font-size:0.55rem;margin-top:2px;}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:0.6rem;}
+.tbl th{padding:6px 8px;text-align:left;color:var(--text3);font-size:0.5rem;letter-spacing:1px;border-bottom:1px solid var(--border);}
+.tbl td{padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.05);}
+.tbl tr:last-child td{border-bottom:none;}
+
+/* CHART */
+.chart-wrap{background:var(--card2);border-radius:10px;padding:10px;margin-top:8px;}
+canvas{width:100%!important;display:block;}
+
+/* ALERT */
+.alert{display:flex;align-items:flex-start;gap:8px;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.3);border-radius:10px;padding:10px;margin-bottom:8px;}
+.alert-icon{font-size:1rem;flex-shrink:0;}
+.alert-text{font-size:0.6rem;color:var(--text2);}
+.alert-warn{background:rgba(255,159,10,.1);border-color:rgba(255,159,10,.3);}
+.alert-ok{background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);}
+
+/* RECORD ITEM */
+.rec{background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px;}
+.rec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.rec-well{font-size:0.75rem;font-weight:700;}
+.rec-date{font-size:0.5rem;color:var(--text3);}
+.rec-params{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.rec-param{background:var(--card2);border-radius:8px;padding:4px 8px;font-size:0.55rem;color:var(--text2);}
+.rec-del{background:transparent;border:none;color:var(--red);font-size:0.8rem;cursor:pointer;padding:4px;}
+
+/* BOTTOM SAVE MSG */
+.save-msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 24px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:1px;display:none;z-index:200;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:0.65rem;}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-title">МОНИТОРИНГ ДОБЫЧИ</div>
+  <button class="menu-btn" onclick="goBack()">← В МЕНЮ</button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('input',this)">ВВОД</div>
+  <div class="tab" onclick="switchTab('analytics',this)">АНАЛИТИКА</div>
+  <div class="tab" onclick="switchTab('history',this)">ИСТОРИЯ</div>
+  <div class="tab" onclick="switchTab('alerts',this)">АЛЕРТЫ</div>
+  <div class="tab" onclick="switchTab('report',this)">РАПОРТ</div>
+  <div class="tab" onclick="switchTab('effect',this)">ЭФФЕКТ</div>
+</div>
+
+<!-- ═══ ВВОД ДАННЫХ ═══ -->
+<div id="page-input" class="page active">
+  <div class="card">
+    <div class="card-title">НОВАЯ ЗАПИСЬ</div>
+    <div class="frow">
+      <div class="field"><label>КУСТ (КП)</label><input id="f_kp" placeholder="" type="text"></div>
+      <div class="field"><label>СКВАЖИНА №</label><input id="f_well" placeholder="" type="text"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>ДЕБИТ НЕФТИ (т/сут)</label><input id="f_oil" placeholder="0" type="number" inputmode="decimal"></div>
+      <div class="field"><label>ДЕБИТ ЖИДК. (м³/сут)</label><input id="f_liq" placeholder="0" type="number" inputmode="decimal"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>ДАВЛЕНИЕ Рб (атм)</label><input id="f_pres" placeholder="0" type="number" inputmode="decimal"></div>
+      <div class="field"><label>НД (м)</label><input id="f_nd" placeholder="0" type="number" inputmode="decimal"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>ТОК I (А)</label><input id="f_cur" placeholder="0" type="number" inputmode="decimal"></div>
+      <div class="field"><label>ОБВОДН. (%)</label><input id="f_wc" placeholder="0" type="number" inputmode="decimal"></div>
+    </div>
+    <div class="frow full">
+      <div class="field"><label>СТАТУС</label>
+        <select id="f_status">
+          <option value="работает">✅ Работает</option>
+          <option value="простой">🔴 Простой</option>
+          <option value="ремонт">🔧 КРС / Ремонт</option>
+          <option value="исследование">🔬 Исследование</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow full" id="reason_row" style="display:none;">
+      <div class="field"><label>ПРИЧИНА ПРОСТОЯ</label>
+        <select id="f_reason">
+          <option>Отказ УЭЦН</option>
+          <option>Отказ ПЭД</option>
+          <option>Засорение</option>
+          <option>КРС плановый</option>
+          <option>ГРП</option>
+          <option>СКО</option>
+          <option>Порыв НКТ</option>
+          <option>Ремонт НКО</option>
+          <option>Другое</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow full">
+      <div class="field"><label>ПРИМЕЧАНИЕ</label>
+        <textarea id="f_note" placeholder="Доп. информация..."></textarea>
+      </div>
+    </div>
+    <button class="btn btn-green" onclick="saveRecord()">СОХРАНИТЬ ЗАПИСЬ</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">БЫСТРАЯ СТАТИСТИКА</div>
+    <div id="quick_stats" style="color:var(--text3);font-size:0.6rem;text-align:center;padding:10px;">
+      Нет данных — внесите первую запись
+    </div>
+  </div>
+</div>
+
+<!-- ═══ АНАЛИТИКА ═══ -->
+<div id="page-analytics" class="page">
+  <div id="stat_cards" class="stats"></div>
+
+  <div class="card">
+    <div class="card-title">ДИНАМИКА ДЕБИТА НЕФТИ (т/сут)</div>
+    <div class="chart-wrap"><canvas id="chart_oil" height="140"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ДИНАМИКА ДЕБИТА ЖИДКОСТИ (м³/сут)</div>
+    <div class="chart-wrap"><canvas id="chart_liq" height="140"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">СТАТУСЫ СКВАЖИН</div>
+    <div id="status_table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ПРОСТОИ — ПРИЧИНЫ</div>
+    <div id="downtime_table"></div>
+  </div>
+
+  <button class="btn btn-blue" onclick="exportExcel()" style="margin-top:4px;">ВЫГРУЗИТЬ В EXCEL</button>
+</div>
+
+<!-- ═══ ИСТОРИЯ ═══ -->
+<div id="page-history" class="page">
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <input id="filter_well" placeholder="Фильтр по скважине..." style="flex:1;background:var(--card);border:none;border-radius:10px;padding:9px 12px;color:var(--text);font-size:0.75rem;font-family:var(--font);outline:none;" oninput="renderHistory()">
+    <button class="btn btn-red" onclick="clearAll()" style="width:auto;padding:9px 14px;font-size:0.55rem;margin-top:0;">🗑 ОЧИСТИТЬ</button>
+  </div>
+  <div id="history_list"></div>
+</div>
+
+<!-- ═══ АЛЕРТЫ ═══ -->
+<div id="page-alerts" class="page">
+  <div class="card">
+    <div class="card-title">НАСТРОЙКИ АЛЕРТОВ</div>
+    <div class="frow">
+      <div class="field"><label>ПАДЕНИЕ ДЕБИТА НЕФТИ (%)</label><input id="al_oil_drop" type="number" value="20" placeholder="20"></div>
+      <div class="field"><label>МАКС. ПРОСТОЙ (ч)</label><input id="al_stop_hrs" type="number" value="8" placeholder="8"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>МИН. ДЕБИТ НЕФТИ (т/сут)</label><input id="al_oil_min" type="number" value="5" placeholder="5"></div>
+      <div class="field"><label>МАКС. ОБВОДН. (%)</label><input id="al_wc_max" type="number" value="90" placeholder="90"></div>
+    </div>
+    <button class="btn btn-blue" onclick="checkAlerts()">ПРОВЕРИТЬ АЛЕРТЫ</button>
+  </div>
+  <div id="alerts_list" style="margin-top:4px;"></div>
+</div>
+
+<!-- ═══ СУТОЧНЫЙ РАПОРТ ═══ -->
+<div id="page-report" class="page">
+  <div class="card">
+    <div class="card-title">СУТОЧНЫЙ РАПОРТ — ПАРАМЕТРЫ</div>
+    <div class="frow">
+      <div class="field"><label>ДАТА РАПОРТА</label><input type="date" id="rep_date"></div>
+      <div class="field"><label>СМЕНА</label>
+        <select id="rep_shift">
+          <option>День (08:00–20:00)</option>
+          <option>Ночь (20:00–08:00)</option>
+          <option>Суточный</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>ЦДНГ</label><input id="rep_cdng" placeholder=""></div>
+      <div class="field"><label>ОПЕРАТОР / ФИО</label><input id="rep_fio" placeholder=""></div>
+    </div>
+    <div class="frow full">
+      <div class="field"><label>ПЛАН НЕФТИ (т/сут)</label><input id="rep_plan_oil" type="number" placeholder="0"></div>
+    </div>
+    <button class="btn btn-green" onclick="buildReport()">СФОРМИРОВАТЬ РАПОРТ</button>
+  </div>
+  <div id="report_preview" style="display:none;">
+    <div class="card" id="report_content" style="font-family:monospace;font-size:0.65rem;line-height:1.7;white-space:pre-wrap;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-blue" onclick="copyReport()">КОПИРОВАТЬ</button>
+      <button class="btn btn-outline" onclick="printReport()">ПЕЧАТЬ / PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ЭКОНОМИЧЕСКИЙ ЭФФЕКТ ═══ -->
+<div id="page-effect" class="page">
+  <div class="card">
+    <div class="card-title">РАСЧЁТ ЭКОНОМИЧЕСКОГО ЭФФЕКТА</div>
+    <div class="frow">
+      <div class="field"><label>ОПЕРАТОРОВ В СМЕНЕ</label><input id="ef_workers" type="number" value="5" placeholder="5"></div>
+      <div class="field"><label>СМЕН В МЕСЯЦ</label><input id="ef_shifts" type="number" value="15" placeholder="15"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>ВРЕМЯ НА ОТЧЁТ ДО (мин)</label><input id="ef_before" type="number" value="30" placeholder="30"></div>
+      <div class="field"><label>ВРЕМЯ С СИСТЕМОЙ (мин)</label><input id="ef_after" type="number" value="5" placeholder="5"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>СТОИМОСТЬ ЧАС РАБОТЫ (руб)</label><input id="ef_rate" type="number" value="300" placeholder="300"></div>
+      <div class="field"><label>ПРОСТОЕВ ВЫЯВЛЕНО ШТ.</label><input id="ef_stops" type="number" value="0" placeholder="0"></div>
+    </div>
+    <div class="frow full">
+      <div class="field"><label>СР. ПОТЕРИ ОТ ПРОСТОЯ (руб/ч)</label><input id="ef_loss" type="number" value="50000" placeholder="50000"></div>
+    </div>
+    <button class="btn btn-green" onclick="calcEffect()">РАССЧИТАТЬ ЭФФЕКТ</button>
+  </div>
+  <div id="effect_result" style="margin-top:4px;"></div>
+</div>
+
+<div class="save-msg" id="save_msg">СОХРАНЕНО</div>
+<div class="bottom-menu">
+  <button class="menu-btn" onclick="goBack()">← В МЕНЮ</button>
+</div>
+
+<script>
+// ══════════════════════════════════
+// ХРАНИЛИЩЕ
+// ══════════════════════════════════
+const KEY = 'ata_monitoring_v1';
+function load() { try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch(e){return[];} }
+function save(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e){} }
+
+// ══════════════════════════════════
+// ВКЛАДКИ
+// ══════════════════════════════════
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+  if(id==='analytics') renderAnalytics();
+  if(id==='history') renderHistory();
+  if(id==='alerts') checkAlerts();
+}
+
+// Показ/скрытие причины
+document.getElementById('f_status').addEventListener('change', function(){
+  document.getElementById('reason_row').style.display =
+    (this.value==='простой'||this.value==='ремонт') ? 'grid' : 'none';
+});
+
+// ══════════════════════════════════
+// СОХРАНЕНИЕ ЗАПИСИ
+// ══════════════════════════════════
+function saveRecord() {
+  const kp   = document.getElementById('f_kp').value.trim();
+  const well = document.getElementById('f_well').value.trim();
+  if(!well) { alert('Введите номер скважины'); return; }
+
+  const rec = {
+    id:   Date.now(),
+    dt:   new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    kp,well,
+    oil:  parseFloat(document.getElementById('f_oil').value)||0,
+    liq:  parseFloat(document.getElementById('f_liq').value)||0,
+    pres: parseFloat(document.getElementById('f_pres').value)||0,
+    nd:   parseFloat(document.getElementById('f_nd').value)||0,
+    cur:  parseFloat(document.getElementById('f_cur').value)||0,
+    wc:   parseFloat(document.getElementById('f_wc').value)||0,
+    status: document.getElementById('f_status').value,
+    reason: document.getElementById('f_reason').value,
+    note:   document.getElementById('f_note').value.trim(),
+  };
+
+  const data = load();
+  data.unshift(rec);
+  save(data);
+
+  // Очищаем числовые поля
+  ['f_oil','f_liq','f_pres','f_nd','f_cur','f_wc','f_note'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+
+  showMsg();
+  renderQuickStats();
+}
+
+function showMsg() {
+  const m = document.getElementById('save_msg');
+  m.style.display='block';
+  setTimeout(()=>m.style.display='none', 2000);
+}
+
+// ══════════════════════════════════
+// БЫСТРАЯ СТАТИСТИКА
+// ══════════════════════════════════
+function renderQuickStats() {
+  const data = load();
+  if(!data.length) return;
+  const today = new Date().toLocaleDateString('ru-RU');
+  const todayRecs = data.filter(r=>r.dt.startsWith(today.split('.').reverse().join('.')));
+  const work = data.filter(r=>r.status==='работает').length;
+  const stop = data.filter(r=>r.status==='простой').length;
+  const avgOil = data.length ? (data.reduce((s,r)=>s+r.oil,0)/data.length).toFixed(1) : 0;
+
+  document.getElementById('quick_stats').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+      <div><div style="font-size:1.2rem;font-weight:700;color:var(--green)">${data.length}</div><div style="font-size:0.5rem;color:var(--text3);letter-spacing:1px;">ЗАПИСЕЙ</div></div>
+      <div><div style="font-size:1.2rem;font-weight:700;color:var(--blue)">${avgOil}</div><div style="font-size:0.5rem;color:var(--text3);letter-spacing:1px;">СР. ДЕБИТ т/сут</div></div>
+      <div><div style="font-size:1.2rem;font-weight:700;color:var(--red)">${stop}</div><div style="font-size:0.5rem;color:var(--text3);letter-spacing:1px;">ПРОСТОЕВ</div></div>
+    </div>`;
+}
+
+// ══════════════════════════════════
+// АНАЛИТИКА
+// ══════════════════════════════════
+function renderAnalytics() {
+  const data = load();
+
+  // Карточки статистики
+  const work  = data.filter(r=>r.status==='работает').length;
+  const stop  = data.filter(r=>r.status==='простой').length;
+  const total = data.length;
+  const avgOil = total ? (data.reduce((s,r)=>s+r.oil,0)/total).toFixed(1) : '—';
+  const avgLiq = total ? (data.reduce((s,r)=>s+r.liq,0)/total).toFixed(1) : '—';
+  const avgWc  = total ? (data.reduce((s,r)=>s+r.wc,0)/total).toFixed(1) : '—';
+
+  document.getElementById('stat_cards').innerHTML = `
+    <div class="stat-card"><div class="stat-val" style="color:var(--green)">${work}</div><div class="stat-lbl">РАБОТАЕТ</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--red)">${stop}</div><div class="stat-lbl">ПРОСТОЙ</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${avgOil}</div><div class="stat-lbl">СР. НЕФТЬ т/сут</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${avgWc}%</div><div class="stat-lbl">СР. ОБВОДН.</div></div>`;
+
+  if(!total) return;
+
+  // Графики — последние 20 записей
+  const recent = data.slice(0,20).reverse();
+  const labels = recent.map(r=>r.well ? 'СКВ-'+r.well : '');
+
+  drawChart('chart_oil', labels, recent.map(r=>r.oil), '#30D158', 'т/сут');
+  drawChart('chart_liq', labels, recent.map(r=>r.liq), '#0A84FF', 'м³/сут');
+
+  // Таблица статусов по скважинам
+  const wells = {};
+  data.forEach(r=>{
+    const key = (r.kp?'КП-'+r.kp+' ':'')+('СКВ-'+r.well);
+    if(!wells[key]) wells[key]={work:0,stop:0,oil:[],liq:[]};
+    if(r.status==='работает') wells[key].work++;
+    else wells[key].stop++;
+    if(r.oil) wells[key].oil.push(r.oil);
+    if(r.liq) wells[key].liq.push(r.liq);
+  });
+
+  let stHtml = '<table class="tbl"><thead><tr><th>СКВАЖИНА</th><th>РАБ.</th><th>ПРОСТ.</th><th>СР.НЕФТЬ</th><th>СР.ЖИД.</th></tr></thead><tbody>';
+  Object.entries(wells).forEach(([k,v])=>{
+    const avgO = v.oil.length?(v.oil.reduce((a,b)=>a+b,0)/v.oil.length).toFixed(1):'—';
+    const avgL = v.liq.length?(v.liq.reduce((a,b)=>a+b,0)/v.liq.length).toFixed(1):'—';
+    stHtml += `<tr><td style="font-weight:700">${k}</td><td style="color:var(--green)">${v.work}</td><td style="color:var(--red)">${v.stop}</td><td>${avgO}</td><td>${avgL}</td></tr>`;
+  });
+  stHtml += '</tbody></table>';
+  document.getElementById('status_table').innerHTML = stHtml;
+
+  // Причины простоев
+  const reasons = {};
+  data.filter(r=>r.status==='простой'&&r.reason).forEach(r=>{
+    reasons[r.reason] = (reasons[r.reason]||0)+1;
+  });
+  if(Object.keys(reasons).length) {
+    let dHtml = '<table class="tbl"><thead><tr><th>ПРИЧИНА</th><th>КОЛ-ВО</th><th>ДОЛЯ</th></tr></thead><tbody>';
+    const totalStop = Object.values(reasons).reduce((a,b)=>a+b,0);
+    Object.entries(reasons).sort((a,b)=>b[1]-a[1]).forEach(([r,c])=>{
+      dHtml += `<tr><td>${r}</td><td style="color:var(--red);font-weight:700">${c}</td><td style="color:var(--text3)">${(c/totalStop*100).toFixed(0)}%</td></tr>`;
+    });
+    dHtml += '</tbody></table>';
+    document.getElementById('downtime_table').innerHTML = dHtml;
+  } else {
+    document.getElementById('downtime_table').innerHTML = '<div style="color:var(--text3);font-size:0.6rem;padding:10px;text-align:center;">Простоев нет</div>';
+  }
+}
+
+// ══════════════════════════════════
+// ПРОСТОЙ CANVAS ГРАФИК
+// ══════════════════════════════════
+function drawChart(id, labels, values, color, unit) {
+  const canvas = document.getElementById(id);
+  const W = canvas.parentElement.offsetWidth - 20;
+  const H = 140;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#2C2C2E';
+  ctx.fillRect(0,0,W,H);
+
+  if(!values.length) return;
+  const max = Math.max(...values)*1.1||1;
+  const min = Math.min(...values)*0.9;
+  const pad = {l:36,r:10,t:10,b:20};
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+
+  // Grid lines
+  ctx.strokeStyle='rgba(255,255,255,0.06)';
+  ctx.lineWidth=0.5;
+  for(let i=0;i<=4;i++){
+    const y = pad.t + cH*i/4;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle='rgba(142,142,147,0.7)';
+    ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText((max-(max-min)*i/4).toFixed(1),pad.l-3,y+3);
+  }
+
+  // Line
+  const pts = values.map((v,i)=>({
+    x: pad.l + cW*i/(values.length-1||1),
+    y: pad.t + cH*(1-(v-min)/(max-min||1))
+  }));
+
+  // Area fill
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pad.t+cH);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x, pad.t+cH);
+  ctx.closePath();
+  ctx.fillStyle = color+'22';
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke();
+
+  // Dots
+  pts.forEach((p,i)=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    // Value label on last point
+    if(i===pts.length-1){
+      ctx.fillStyle='#fff';
+      ctx.font='bold 9px monospace';
+      ctx.textAlign='center';
+      ctx.fillText(values[i].toFixed(1),p.x,p.y-8);
+    }
+  });
+
+  // X labels
+  ctx.fillStyle='rgba(142,142,147,0.7)';
+  ctx.font='8px monospace';
+  ctx.textAlign='center';
+  const step = Math.ceil(pts.length/5);
+  pts.forEach((p,i)=>{
+    if(i%step===0&&labels[i]) ctx.fillText(labels[i],p.x,H-4);
+  });
+}
+
+// ══════════════════════════════════
+// ИСТОРИЯ
+// ══════════════════════════════════
+function renderHistory() {
+  const data = load();
+  const filter = document.getElementById('filter_well').value.toLowerCase();
+  const filtered = filter ? data.filter(r=>
+    (r.well||'').toLowerCase().includes(filter)||
+    (r.kp||'').toLowerCase().includes(filter)
+  ) : data;
+
+  if(!filtered.length){
+    document.getElementById('history_list').innerHTML='<div class="empty">📋 Нет записей</div>';
+    return;
+  }
+
+  document.getElementById('history_list').innerHTML = filtered.map(r=>`
+    <div class="rec">
+      <div class="rec-head">
+        <div>
+          <span class="rec-well">${r.kp?'КП-'+r.kp+' ':''}СКВ-${r.well}</span>
+          <span class="status ${r.status==='работает'?'s-work':r.status==='простой'?'s-stop':'s-maint'}" style="margin-left:6px;">
+            ${r.status==='работает'?'✅ РАБОТАЕТ':r.status==='простой'?'🔴 ПРОСТОЙ':'🔧 РЕМОНТ'}
+          </span>
+        </div>
+        <button class="rec-del" onclick="deleteRec(${r.id})">✕</button>
+      </div>
+      <div class="rec-date">${r.dt}</div>
+      <div class="rec-params">
+        ${r.oil?`<span class="rec-param">🛢 ${r.oil} т/сут</span>`:''}
+        ${r.liq?`<span class="rec-param">💧 ${r.liq} м³/сут</span>`:''}
+        ${r.pres?`<span class="rec-param">Рб: ${r.pres} атм</span>`:''}
+        ${r.nd?`<span class="rec-param">Нд: ${r.nd} м</span>`:''}
+        ${r.cur?`<span class="rec-param">I: ${r.cur} А</span>`:''}
+        ${r.wc?`<span class="rec-param">Обв: ${r.wc}%</span>`:''}
+        ${r.reason?`<span class="rec-param" style="color:var(--red)">${r.reason}</span>`:''}
+      </div>
+      ${r.note?`<div style="font-size:0.55rem;color:var(--text3);margin-top:6px;">📝 ${r.note}</div>`:''}
+    </div>`).join('');
+}
+
+function deleteRec(id) {
+  const data = load().filter(r=>r.id!==id);
+  save(data);
+  renderHistory();
+}
+
+function clearAll() {
+  if(confirm('Удалить все записи?')) { save([]); renderHistory(); renderQuickStats(); }
+}
+
+// ══════════════════════════════════
+// АЛЕРТЫ
+// ══════════════════════════════════
+function checkAlerts() {
+  const data = load();
+  if(!data.length){
+    document.getElementById('alerts_list').innerHTML='<div class="empty">Нет данных для анализа</div>';
+    return;
+  }
+
+  const oilDrop = +document.getElementById('al_oil_drop').value||20;
+  const stopHrs = +document.getElementById('al_stop_hrs').value||8;
+  const oilMin  = +document.getElementById('al_oil_min').value||5;
+  const wcMax   = +document.getElementById('al_wc_max').value||90;
+
+  const alerts = [];
+
+  // Группируем по скважинам
+  const wells = {};
+  data.forEach(r=>{
+    const key = (r.kp||'?')+'-'+(r.well||'?');
+    if(!wells[key]) wells[key]=[];
+    wells[key].push(r);
+  });
+
+  Object.entries(wells).forEach(([key, recs])=>{
+    const name = 'КП-'+recs[0].kp+' СКВ-'+recs[0].well;
+    const last = recs[0];
+    const prev = recs[1];
+
+    // Простой
+    const stops = recs.filter(r=>r.status==='простой');
+    if(stops.length) alerts.push({type:'red',msg:`${name} — ${stops.length} записей в простое. Причина: ${stops[stops.length-1].reason||'не указана'}`});
+
+    // Падение дебита
+    if(prev&&last.oil>0&&prev.oil>0){
+      const drop = (prev.oil-last.oil)/prev.oil*100;
+      if(drop>oilDrop) alerts.push({type:'red',msg:`${name} — дебит упал на ${drop.toFixed(0)}% (${prev.oil}→${last.oil} т/сут)`});
+    }
+
+    // Минимальный дебит
+    if(last.status==='работает'&&last.oil>0&&last.oil<oilMin)
+      alerts.push({type:'warn',msg:`${name} — дебит ${last.oil} т/сут ниже минимума ${oilMin} т/сут`});
+
+    // Высокая обводнённость
+    if(last.wc>=wcMax)
+      alerts.push({type:'warn',msg:`${name} — обводнённость ${last.wc}% ≥ ${wcMax}%`});
+  });
+
+  if(!alerts.length){
+    document.getElementById('alerts_list').innerHTML='<div class="alert alert-ok"><div class="alert-icon">✅</div><div class="alert-text">Отклонений не обнаружено — все параметры в норме</div></div>';
+    return;
+  }
+
+  document.getElementById('alerts_list').innerHTML = alerts.map(a=>`
+    <div class="alert ${a.type==='warn'?'alert-warn':''}">
+      <div class="alert-icon">${a.type==='red'?'🔴':'⚠️'}</div>
+      <div class="alert-text">${a.msg}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════
+// ЭКСПОРТ В EXCEL (CSV)
+// ══════════════════════════════════
+function exportExcel() {
+  const data = load();
+  if(!data.length){alert('Нет данных для выгрузки');return;}
+  const header = 'Дата;КП;Скважина;Нефть т/сут;Жидкость м³/сут;Давление атм;НД м;Ток А;Обводн.%;Статус;Причина;Примечание\n';
+  const rows = data.map(r=>`${r.dt};${r.kp||''};${r.well||''};${r.oil||0};${r.liq||0};${r.pres||0};${r.nd||0};${r.cur||0};${r.wc||0};${r.status};${r.reason||''};${r.note||''}`).join('\n');
+  const blob = new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'monitoring_'+new Date().toLocaleDateString('ru-RU').replace(/\./g,'-')+'.csv';
+  a.click();
+}
+
+// ══════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ
+// ══════════════════════════════════
+renderQuickStats();
+document.getElementById('rep_date').value = new Date().toISOString().split('T')[0];
+
+function goBack() {
+    if(document.referrer && document.referrer !== '') {
+        window.location.href = document.referrer;
+    } else if(window.opener) {
+        window.close();
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+// ══════════════════════════════════
+// СУТОЧНЫЙ РАПОРТ
+// ══════════════════════════════════
+function buildReport() {
+  const data = load();
+  const date = document.getElementById('rep_date').value;
+  const shift = document.getElementById('rep_shift').value;
+  const cdng = document.getElementById('rep_cdng').value || 'ЦДНГ';
+  const fio = document.getElementById('rep_fio').value || '—';
+  const planOil = parseFloat(document.getElementById('rep_plan_oil').value)||0;
+
+  // Фильтруем по дате
+  const dateStr = date ? new Date(date).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+  const recs = dateStr ? data.filter(r=>r.dt.startsWith(dateStr)) : data;
+
+  if(!recs.length) { alert('Нет данных за выбранную дату'); return; }
+
+  const work = recs.filter(r=>r.status==='работает').length;
+  const stop = recs.filter(r=>r.status==='простой').length;
+  const totalOil = recs.reduce((s,r)=>s+r.oil,0);
+  const totalLiq = recs.reduce((s,r)=>s+r.liq,0);
+  const avgWc = recs.length ? (recs.reduce((s,r)=>s+r.wc,0)/recs.length).toFixed(1) : 0;
+  const planFact = planOil ? (totalOil/planOil*100).toFixed(1) : '—';
+
+  const stops = recs.filter(r=>r.status==='простой');
+  const stopList = stops.length ? stops.map(r=>`  • ${r.kp?'КП-'+r.kp+' ':''}СКВ-${r.well} — ${r.reason||'причина не указана'}`).join('\n') : '  Простоев нет';
+
+  const wellsList = recs.map(r=>`  ${r.kp?'КП-'+r.kp+'/':''}СКВ-${r.well.padEnd(6)} | Нефть: ${String(r.oil).padEnd(6)} т/сут | Жид: ${String(r.liq).padEnd(6)} м³/сут | ${r.status==='работает'?'✅':'🔴'} ${r.status}`).join('\n');
+
+  const now = new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  const report = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+СУТОЧНЫЙ РАПОРТ
+${cdng} | ${dateStr||'все записи'} | ${shift}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ИТОГО:
+  Скважин работает: ${work}
+  Скважин в простое: ${stop}
+  Добыча нефти: ${totalOil.toFixed(1)} т/сут
+  Добыча жидкости: ${totalLiq.toFixed(1)} м³/сут
+  Средняя обводнённость: ${avgWc}%
+${planOil ? `  Выполнение плана: ${planFact}% (план ${planOil} т/сут)` : ''}
+
+СКВАЖИНЫ:
+${wellsList}
+
+ПРОСТОИ:
+${stopList}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Оператор: ${fio}
+Сформировано: ${now}
+ATA OIL & GAS FIELD CALCULATOR
+ANVAROV T.A. © 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+  document.getElementById('report_content').textContent = report;
+  document.getElementById('report_preview').style.display = 'block';
+  window._reportText = report;
+}
+
+function copyReport() {
+  if(!window._reportText) return;
+  navigator.clipboard.writeText(window._reportText).then(()=>showMsg()).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = window._reportText;
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showMsg();
+  });
+}
+
+function printReport() {
+  if(!window._reportText) return;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Рапорт</title>
+  <style>body{font-family:monospace;font-size:11px;padding:20px;color:#000;white-space:pre-wrap;}
+  @media print{@page{margin:10mm}}</style></head>
+  <body>${window._reportText.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),300);
+}
+
+// ══════════════════════════════════
+// ЭКОНОМИЧЕСКИЙ ЭФФЕКТ
+// ══════════════════════════════════
+function calcEffect() {
+  const workers = +document.getElementById('ef_workers').value||5;
+  const shifts  = +document.getElementById('ef_shifts').value||15;
+  const before  = +document.getElementById('ef_before').value||30;
+  const after   = +document.getElementById('ef_after').value||5;
+  const rate    = +document.getElementById('ef_rate').value||300;
+  const stops   = +document.getElementById('ef_stops').value||0;
+  const loss    = +document.getElementById('ef_loss').value||50000;
+
+  // Экономия на отчётах
+  const savedMin = (before - after) * workers * shifts;
+  const savedHrs = savedMin / 60;
+  const savedRub = savedHrs * rate;
+
+  // Экономия от выявленных простоев (среднее 2ч на простой)
+  const stopSavings = stops * 2 * loss;
+
+  const total = savedRub + stopSavings;
+  const annual = total * 12;
+
+  document.getElementById('effect_result').innerHTML = `
+    <div class="card">
+      <div class="card-title">РЕЗУЛЬТАТ РАСЧЁТА</div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.55rem;color:var(--text3);letter-spacing:1px;margin-bottom:4px;">ЭКОНОМИЯ НА ОТЧЁТНОСТИ</div>
+        <div style="font-size:0.8rem;color:var(--green);font-weight:700;">${savedMin.toFixed(0)} мин/мес = ${savedHrs.toFixed(1)} ч/мес</div>
+        <div style="font-size:0.65rem;color:var(--text2);">${savedRub.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,' ')} руб/мес</div>
+      </div>
+
+      ${stops ? `<div style="margin-bottom:12px;">
+        <div style="font-size:0.55rem;color:var(--text3);letter-spacing:1px;margin-bottom:4px;">СНИЖЕНИЕ ПОТЕРЬ ОТ ПРОСТОЕВ</div>
+        <div style="font-size:0.8rem;color:var(--orange);font-weight:700;">${stops} простоев × 2 ч × ${loss.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,' ')} руб/ч</div>
+        <div style="font-size:0.65rem;color:var(--text2);">${stopSavings.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,' ')} руб/мес</div>
+      </div>` : ''}
+
+      <div style="background:var(--card2);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:0.55rem;color:var(--text3);letter-spacing:1px;margin-bottom:4px;">СУММАРНЫЙ ЭФФЕКТ</div>
+        <div style="font-size:1.4rem;font-weight:700;color:var(--green);">${total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,' ')} руб/мес</div>
+        <div style="font-size:0.75rem;color:var(--text2);margin-top:4px;">${annual.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,' ')} руб/год</div>
+      </div>
+
+      <div style="margin-top:12px;font-size:0.55rem;color:var(--text3);line-height:1.6;">
+        Для конкурсной заявки:<br>
+        • Охват: ${workers} операторов × ${shifts} смен/мес<br>
+        • Экономия времени: ${savedHrs.toFixed(1)} ч/мес (${(savedHrs*12).toFixed(0)} ч/год)<br>
+        • Денежный эффект: ${total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,' ')} руб/мес<br>
+        • Срок внедрения: не требуется (веб-браузер)
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>
